@@ -1,0 +1,8 @@
+<factorypath>
+<% for (dep in deps) { %>\
+  <factorypathentry kind='EXTJAR'
+                    id='${dep.absolutePath}'
+                    enabled='true'
+                    runInBatchMode='false' />
+<% } %>\
+</factorypath>
