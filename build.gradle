@@ -1,9 +1,29 @@
-apply plugin: 'java-gradle-plugin'
-apply plugin: 'groovy'
+plugins {
+  id 'java-gradle-plugin'
+  id 'groovy'
+  id 'com.gradle.plugin-publish' version '0.9.1'
+}
 
 dependencies {
   compile localGroovy()
   testCompile gradleTestKit()
+}
+
+group = 'org.inferred'
+version = '1.0-rc1'
+
+pluginBundle {
+  website = 'https://github.com/palantir/gradle-processors'
+  vcsUrl = 'https://github.com/palantir/gradle-processors'
+
+  plugins {
+    greetingsPlugin {
+      displayName = 'Processors plugin'
+      id = 'org.inferred.processors'
+      description = 'Clean integration of Java 6+ annotation processors with the Eclipse and IDEA plugins'
+      tags = ['java', 'annotation', 'processor']
+    }
+  }
 }
 
 // Write the plugin's classpath to a file to share with the tests
