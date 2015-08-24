@@ -144,6 +144,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       binding.each{ k, v -> inputs.property k, v }
       outputs.file outputFile
       doLast {
+        outputFile.parentFile.mkdirs()
         def stream = getClass().classLoader.getResourceAsStream templateFilename
         try {
           def reader = new InputStreamReader(stream, "UTF-8")
