@@ -57,7 +57,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath 'gradle.plugin.org.inferred:processors:1.0-rc3'
+    classpath 'gradle.plugin.org.inferred:gradle-processors:1.0-rc3'
   }
 }
 
