@@ -34,7 +34,7 @@ You can now include annotation processors with the `processor` dependency type:
 ```gradle
 
 dependencies {
-  dependency 'com.google.auto.value:auto-value:1.0'
+  processor 'com.google.auto.value:auto-value:1.0'
 }
 ```
 
