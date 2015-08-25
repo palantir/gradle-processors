@@ -4,13 +4,18 @@ plugins {
   id 'com.gradle.plugin-publish' version '0.9.1'
 }
 
+repositories {
+  mavenCentral()
+}
+
 dependencies {
   compile localGroovy()
+  compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
   testCompile gradleTestKit()
 }
 
 group = 'org.inferred'
-version = '1.0-rc3'
+version = '1.0-rc8'
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'

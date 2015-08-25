@@ -4,10 +4,12 @@ import java.io.InputStreamReader
 
 import groovy.text.SimpleTemplateEngine
 
-import org.gradle.api.Action
+import org.gradle.api.DomainObjectCollection
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.plugins.ide.eclipse.EclipsePlugin
+import org.gradle.plugins.ide.idea.IdeaPlugin
 
 class ProcessorsPlugin implements Plugin<Project> {
 
@@ -30,7 +32,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
 
     /**** Eclipse *********************************************************************************/
-    project.plugins.withId 'eclipse', { plugin ->
+    project.plugins.withType(EclipsePlugin, { plugin ->
       project.eclipse {
         classpath.plusConfigurations += [project.configurations.processor]
         if (jdt != null) {
@@ -62,10 +64,10 @@ class ProcessorsPlugin implements Plugin<Project> {
       )
       project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
       project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
-    }
+    })
 
     /**** IntelliJ ********************************************************************************/
-    project.plugins.withId 'idea', { plugin ->
+    project.plugins.withType(IdeaPlugin, { plugin ->
       if (project.idea.module.scopes.PROVIDED != null) {
         project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
       }
@@ -118,20 +120,20 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
 
-    }
+    })
   }
 
   /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
   private static <T> void withName(
-      NamedDomainObjectCollection<T> collection, String name, Action<? super T> action) {
+      NamedDomainObjectCollection<T> collection, String name, Closure action) {
     T object = collection.findByName(name)
     if (object != null) {
-      action.execute(object)
+      action.call(object)
     } else {
       collection.whenObjectAdded { o ->
         String oName = collection.getNamer().determineName(o)
         if (oName == name) {
-          action.execute(o)
+          action.call(o)
         }
       }
     }

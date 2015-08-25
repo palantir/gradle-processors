@@ -31,11 +31,22 @@ class ProcessorsPluginTest {
   }
 
   @Test
-  public void addsEclipseConfigurationTasks() {
+  public void addsEclipseConfigurationTasks_processorsFirst() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
     project.pluginManager.apply 'java'
     project.pluginManager.apply 'eclipse'
+
+    assertNotNull project.tasks.eclipseAptPrefs
+    assertNotNull project.tasks.eclipseFactoryPath
+  }
+
+  @Test
+  public void addsEclipseConfigurationTasks_processorsLast() {
+    Project project = ProjectBuilder.builder().build()
+    project.pluginManager.apply 'java'
+    project.pluginManager.apply 'eclipse'
+    project.pluginManager.apply 'org.inferred.processors'
 
     assertNotNull project.tasks.eclipseAptPrefs
     assertNotNull project.tasks.eclipseFactoryPath
