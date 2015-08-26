@@ -8,6 +8,7 @@ import org.gradle.api.DomainObjectCollection
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -29,6 +30,15 @@ class ProcessorsPlugin implements Plugin<Project> {
     /**** javac, groovy, etc. *********************************************************************/
     withName(project.configurations, 'compile', { c ->
       c.extendsFrom(project.configurations.getAt('processor'))
+    })
+    project.plugins.withType(JavaPlugin, { plugin ->
+      project.compileJava.dependsOn project.task('processorPath', {
+        doLast {
+          def config = project.configurations.getAt('processor').resolvedConfiguration
+          def path = project.files(config.getFiles({ true })).getAsPath()
+          project.compileJava.options.compilerArgs += ["-processorpath", path]
+        }
+      })
     })
 
     /**** Eclipse *********************************************************************************/
