@@ -9,6 +9,7 @@ import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.specs.Spec
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -35,7 +36,8 @@ class ProcessorsPlugin implements Plugin<Project> {
       project.compileJava.dependsOn project.task('processorPath', {
         doLast {
           def config = project.configurations.getAt('processor').resolvedConfiguration
-          def path = project.files(config.getFiles({ true })).getAsPath()
+          def path = project.files(config.getFiles(
+              { d -> true } as Spec<Object>)).getAsPath()
           project.compileJava.options.compilerArgs += ["-processorpath", path]
         }
       })
