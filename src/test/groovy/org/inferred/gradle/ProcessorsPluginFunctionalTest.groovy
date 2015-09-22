@@ -119,6 +119,33 @@ public class ProcessorsPluginFunctionalTest {
         .build()
   }
 
+  @Test
+  public void testFindBugsIntegration() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'findbugs'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    GradleRunner.create()
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("findbugsMain")
+        .build()
+  }
+
   private void writeBuildscript() {
     def pluginClasspathResource = getClass().classLoader.findResource("plugin-classpath.txt")
     if (pluginClasspathResource == null) {
