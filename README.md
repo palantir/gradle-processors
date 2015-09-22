@@ -2,11 +2,12 @@ Gradle Processors
 =================
 
 A plugin for Gradle that cleans up integration of Java 6+ [annotation processors][] with the
-[Eclipse][] and [IDEA][] plugins.
+[Eclipse][], [IDEA][] and [FindBugs][] plugins.
 
 [annotation processors]: http://docs.oracle.com/javase/6/docs/api/javax/annotation/processing/Processor.html
 [Eclipse]: https://docs.gradle.org/current/userguide/eclipse_plugin.html
 [IDEA]: https://docs.gradle.org/current/userguide/idea_plugin.html
+[FindBugs]: https://docs.gradle.org/current/userguide/findbugs_plugin.html
 
 Quickstart
 ----------
@@ -16,7 +17,7 @@ To use it, add the following to your top-level build.gradle file:
 ```gradle
 
 plugins {
-  id 'org.inferred.processors' version '1.0.1'
+  id 'org.inferred.processors' version '1.0.2'
 }
 ```
 
@@ -57,7 +58,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath 'gradle.plugin.org.inferred:gradle-processors:1.0.1'
+    classpath 'gradle.plugin.org.inferred:gradle-processors:1.0.2'
   }
 }
 
