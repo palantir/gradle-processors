@@ -120,6 +120,36 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testGroovyCompilationOfJavaFiles() throws IOException {
+    buildFile << """
+      apply plugin: 'org.inferred.processors'
+      apply plugin: 'groovy'
+
+      dependencies {
+        compile 'org.codehaus.groovy:groovy-all:2.3.10'
+        processor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'groovy'), 'MyClass.java') << """
+      import com.google.auto.value.AutoValue;
+
+      @AutoValue
+      public abstract class MyClass {
+        public abstract int getValue();
+        public static MyClass create(int value) {
+          return new AutoValue_MyClass(value);
+        }
+      }
+    """
+
+    GradleRunner.create()
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("compileGroovy")
+        .build()
+  }
+
+  @Test
   public void testFindBugsIntegration() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -144,6 +174,41 @@ public class ProcessorsPluginFunctionalTest {
         .withProjectDir(testProjectDir.getRoot())
         .withArguments("findbugsMain")
         .build()
+  }
+
+  /** @see https://github.com/palantir/gradle-processors/issues/3 */
+  @Test
+  public void testProcessorJarsNotExported() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import com.google.auto.value.AutoValue;
+
+      @AutoValue
+      public abstract class MyClass {
+        public abstract int getValue();
+
+        public static MyClass create(int value) {
+          return new AutoValue_MyClass(value);
+        }
+      }
+    """
+
+    String txt = GradleRunner.create()
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("dependencies")
+        .build()
+        .getStandardOutput()
+    txt = txt.substring(txt.indexOf("runtime"))
+    txt = txt.substring(txt.indexOf("\n") + 1, txt.indexOf("\n\n"))
+    assertEquals("No dependencies", txt)
   }
 
   private void writeBuildscript() {
