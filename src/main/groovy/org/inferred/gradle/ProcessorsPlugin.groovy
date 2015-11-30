@@ -31,7 +31,7 @@ class ProcessorsPlugin implements Plugin<Project> {
 
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
-      project.sourceSets.each { it.compileClasspath += [project.configurations.processor] }
+      project.sourceSets.each { it.compileClasspath += project.configurations.processor }
       project.compileJava.dependsOn project.task('processorPath', {
         doLast {
           def config = project.configurations.getAt('processor').resolvedConfiguration
