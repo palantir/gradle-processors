@@ -15,7 +15,7 @@ dependencies {
 }
 
 group = 'org.inferred'
-version = '1.1'
+version = '1.1.2'
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'
