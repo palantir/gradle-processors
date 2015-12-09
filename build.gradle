@@ -31,6 +31,12 @@ pluginBundle {
   }
 }
 
+// Ensure Java7 compatibility
+tasks.withType(GroovyCompile) {
+    sourceCompatibility = '1.7'
+    targetCompatibility = '1.7'
+}
+
 // Write the plugin's classpath to a file to share with the tests
 task createClasspathManifest {
   def outputDir = file("$buildDir/$name")
