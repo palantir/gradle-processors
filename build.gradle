@@ -15,7 +15,7 @@ dependencies {
 }
 
 group = 'org.inferred'
-version = '1.1'
+version = '1.1.2'
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'
@@ -29,6 +29,12 @@ pluginBundle {
       tags = ['java', 'annotation', 'processor']
     }
   }
+}
+
+// Ensure Java7 compatibility
+tasks.withType(GroovyCompile) {
+    sourceCompatibility = '1.7'
+    targetCompatibility = '1.7'
 }
 
 // Write the plugin's classpath to a file to share with the tests
