@@ -8,8 +8,10 @@ import org.gradle.api.DomainObjectCollection
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.quality.FindBugs
+import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.specs.Spec
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
@@ -34,10 +36,14 @@ class ProcessorsPlugin implements Plugin<Project> {
       project.sourceSets.each { it.compileClasspath += project.configurations.processor }
       project.compileJava.dependsOn project.task('processorPath', {
         doLast {
-          def config = project.configurations.getAt('processor').resolvedConfiguration
-          def path = project.files(config.getFiles(
-              { d -> true } as Spec<Object>)).getAsPath()
+          String path = getProcessors(project).getAsPath()
           project.compileJava.options.compilerArgs += ["-processorpath", path]
+        }
+      })
+      project.javadoc.dependsOn project.task('javadocProcessors', {
+        doLast {
+          Set<File> path = getProcessors(project).files
+          project.javadoc.options.classpath += path
         }
       })
     })
@@ -165,6 +171,11 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     }
+  }
+
+  static FileCollection getProcessors(Project project) {
+    ResolvedConfiguration config = project.configurations.processor.resolvedConfiguration
+    return project.files(config.getFiles({ d -> true } as Spec<Object>))
   }
 
   static void templateTask(project, taskName, templateFilename, outputFilename, binding) {
