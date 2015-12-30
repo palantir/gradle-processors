@@ -2,6 +2,7 @@ plugins {
   id 'java-gradle-plugin'
   id 'groovy'
   id 'com.gradle.plugin-publish' version '0.9.1'
+  id 'com.palantir.git-version' version '0.2.0'
 }
 
 repositories {
@@ -15,7 +16,7 @@ dependencies {
 }
 
 group = 'org.inferred'
-version = '1.1.2'
+version = gitVersion().replaceAll('^v', '')
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'
