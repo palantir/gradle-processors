@@ -211,6 +211,38 @@ public class ProcessorsPluginFunctionalTest {
     assertEquals("No dependencies", txt)
   }
 
+  @Test
+  public void testJavadoc() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import com.google.auto.value.AutoValue;
+
+      @AutoValue
+      public abstract class MyClass {
+        public abstract int getValue();
+
+        public static MyClass create(int value) {
+          return new AutoValue_MyClass(value);
+        }
+      }
+    """
+
+    String txt = GradleRunner.create()
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("--info", "javadoc")
+        .build()
+        .getStandardError()
+    assertEquals("", txt);
+  }
+
   private void writeBuildscript() {
     def pluginClasspathResource = getClass().classLoader.findResource("plugin-classpath.txt")
     if (pluginClasspathResource == null) {
