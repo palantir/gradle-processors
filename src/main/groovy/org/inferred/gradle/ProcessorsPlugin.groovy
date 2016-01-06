@@ -87,6 +87,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     project.plugins.withType(IdeaPlugin, { plugin ->
       if (project.idea.module.scopes.PROVIDED != null) {
         project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
+        project.idea.module.scopes.PROVIDED.minus += [project.configurations.runtime]
       }
 
       /*
