@@ -8,6 +8,8 @@ import org.gradle.api.DomainObjectCollection
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.quality.FindBugs
@@ -86,7 +88,13 @@ class ProcessorsPlugin implements Plugin<Project> {
     /**** IntelliJ ********************************************************************************/
     project.plugins.withType(IdeaPlugin, { plugin ->
       if (project.idea.module.scopes.PROVIDED != null) {
-        project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
+        Configuration moveToCompile = configurationIntersection(project, ['processor', 'runtime'])
+        def scopes = project.idea.module.scopes
+
+        scopes.PROVIDED.plus += [project.configurations.processor]
+        scopes.PROVIDED.minus += [project.configurations.compile, project.configurations.runtime]
+        scopes.COMPILE.plus += [moveToCompile]
+        scopes.RUNTIME.minus += [moveToCompile]
       }
 
       /*
@@ -209,9 +217,32 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
     })
   }
+
+  /** Returns a view of the intersection of multiple configurations. */
+  static Configuration configurationIntersection(
+      Project project, Collection<String> configNames) {
+    Configuration result = project.configurations.detachedConfiguration()
+    def configs = configNames.collect { project.configurations[it] }
+    Closure filter = { e ->
+      configs*.allDependencies.every { it.contains(e) }
+    }
+    result.dependencies.addAll(configs.iterator().next().allDependencies.matching(filter))
+    Closure updateResult = {
+      if (filter.call(it)) {
+        result.dependencies.add(it)
+      } else {
+        result.dependencies.remove(it)
+      }
+    }
+    def hierarchy = configs*.hierarchy.flatten()
+    hierarchy*.dependencies*.whenObjectAdded updateResult
+    hierarchy*.dependencies*.whenObjectRemoved updateResult
+    return result
+  }
 }
 
 class ProcessorsExtension {
   String sourceOutputDir
   String testSourceOutputDir
 }
+

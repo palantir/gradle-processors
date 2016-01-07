@@ -13,6 +13,7 @@ dependencies {
   compile localGroovy()
   compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
   testCompile gradleTestKit()
+  testCompile 'com.google.guava:guava:19.0'
 }
 
 group = 'org.inferred'
