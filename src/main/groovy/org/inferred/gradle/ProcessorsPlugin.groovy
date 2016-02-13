@@ -89,33 +89,10 @@ class ProcessorsPlugin implements Plugin<Project> {
         project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
       }
 
-      /*
-       * This line does not work as the property is missing:
-       *     idea.module.generatedSourceDirs += file(project.processors.sourceOutputDir)
-       * According to the docs, however, it should work:
-       * http://gradle.org/docs/current/dsl/org.gradle.plugins.ide.idea.model.IdeaModule.html
-       * (This may be an issue with an older version of the Gradle idea plugin.)
-       * Instead, we modify the XML directly.
-       */
-      project.idea.module.iml {
-        withXml {
-          def content = node.component.content[0]
-          content.appendNode(
-            'sourceFolder', [
-              url: "file://\$MODULE_DIR\$/${project.processors.sourceOutputDir}",
-              isTestSource: "false",
-              generated: "true"
-            ]
-          )
-          content.appendNode(
-            'sourceFolder', [
-              url: "file://\$MODULE_DIR\$/${project.processors.testSourceOutputDir}",
-              isTestSource: "true",
-              generated: "true"
-            ]
-          )
-        }
-      }
+      project.idea.module.generatedSourceDirs += file(project.processors.sourceOutputDir)
+      project.idea.module.sourceDirs += file(project.processors.sourceOutputDir)
+      project.idea.module.generatedSourceDirs += file(project.processors.testSourceOutputDir)
+      project.idea.module.testSourceDirs += file(project.processors.testSourceOutputDir)
 
       // Root project configuration
       if (project.idea.project != null) {
