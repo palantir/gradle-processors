@@ -2,6 +2,7 @@ package org.inferred.gradle
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertTrue
 
 import org.junit.Test
 
@@ -51,4 +52,18 @@ class ProcessorsPluginTest {
     assertNotNull project.tasks.eclipseAptPrefs
     assertNotNull project.tasks.eclipseFactoryPath
   }
+
+  @Test
+  public void configuresIdeaGeneratedSourcesDirectories() {
+    Project project = ProjectBuilder.builder().build()
+    project.pluginManager.apply 'org.inferred.processors'
+    project.pluginManager.apply 'java'
+    project.pluginManager.apply 'idea'
+
+    assertTrue project.idea.module.sourceDirs.contains(project.file('generated_src'))
+    assertTrue project.idea.module.generatedSourceDirs.contains(project.file('generated_src'))
+    assertTrue project.idea.module.testSourceDirs.contains(project.file('generated_testSrc'))
+    assertTrue project.idea.module.generatedSourceDirs.contains(project.file('generated_testSrc'))
+  }
+
 }
