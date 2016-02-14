@@ -89,10 +89,10 @@ class ProcessorsPlugin implements Plugin<Project> {
         project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
       }
 
-      project.idea.module.generatedSourceDirs += file(project.processors.sourceOutputDir)
-      project.idea.module.sourceDirs += file(project.processors.sourceOutputDir)
-      project.idea.module.generatedSourceDirs += file(project.processors.testSourceOutputDir)
-      project.idea.module.testSourceDirs += file(project.processors.testSourceOutputDir)
+      project.idea.module.generatedSourceDirs += project.file(project.processors.sourceOutputDir)
+      project.idea.module.sourceDirs += project.file(project.processors.sourceOutputDir)
+      project.idea.module.generatedSourceDirs += project.file(project.processors.testSourceOutputDir)
+      project.idea.module.testSourceDirs += project.file(project.processors.testSourceOutputDir)
 
       // Root project configuration
       if (project.idea.project != null) {
