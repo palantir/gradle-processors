@@ -1,5 +1,7 @@
 package org.inferred.gradle
 
+import org.gradle.api.GradleException
+
 import java.io.InputStreamReader
 
 import groovy.text.SimpleTemplateEngine
@@ -98,22 +100,22 @@ class ProcessorsPlugin implements Plugin<Project> {
       if (project.idea.project != null) {
         project.idea.project.ipr {
           withXml {
-            Object compilerConfiguration = node.component
-                .find { it.@name == 'CompilerConfiguration' }
-            compilerConfiguration.annotationProcessing.replaceNode{
-              annotationProcessing() {
-                profile(default: 'true', name: 'Default', enabled: 'true') {
-                  sourceOutputDir(name: project.processors.sourceOutputDir)
-                  sourceTestOutputDir(name: project.processors.testSourceOutputDir)
-                  outputRelativeToContentRoot(value: 'true')
-                  processorPath(useClasspath: 'true')
-                }
-              }
-            }
+            updateIdeaCompilerConfiguration(project, node)
           }
         }
       }
 
+      // If the project uses .idea directory structure, update compiler.xml directly
+      File ideaCompilerXml = project.file('.idea/compiler.xml')
+      if (ideaCompilerXml.isFile()) {
+        Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
+        updateIdeaCompilerConfiguration(project, parsedProjectXml)
+        ideaCompilerXml.withWriter { writer ->
+          XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
+          nodePrinter.setPreserveWhitespace(true)
+          nodePrinter.print(parsedProjectXml)
+        }
+      }
     })
 
     /**** FindBugs ********************************************************************************/
@@ -186,6 +188,27 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
     })
   }
+
+  static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
+    Object compilerConfiguration = projectConfiguration.component
+            .find { it.@name == 'CompilerConfiguration' }
+
+    if (compilerConfiguration == null) {
+      throw new GradleException("Unable to find CompilerConfiguration element")
+    }
+
+    compilerConfiguration.annotationProcessing.replaceNode{
+      annotationProcessing() {
+        profile(default: 'true', name: 'Default', enabled: 'true') {
+          sourceOutputDir(name: project.processors.sourceOutputDir)
+          sourceTestOutputDir(name: project.processors.testSourceOutputDir)
+          outputRelativeToContentRoot(value: 'true')
+          processorPath(useClasspath: 'true')
+        }
+      }
+    }
+  }
+
 }
 
 class ProcessorsExtension {
