@@ -104,19 +104,19 @@ class ProcessorsPlugin implements Plugin<Project> {
           }
         }
       }
-
-      // If the project uses .idea directory structure, update compiler.xml directly
-      File ideaCompilerXml = project.file('.idea/compiler.xml')
-      if (ideaCompilerXml.isFile()) {
-        Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-        updateIdeaCompilerConfiguration(project, parsedProjectXml)
-        ideaCompilerXml.withWriter { writer ->
-          XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
-          nodePrinter.setPreserveWhitespace(true)
-          nodePrinter.print(parsedProjectXml)
-        }
-      }
     })
+
+    // If the project uses .idea directory structure, update compiler.xml directly
+    File ideaCompilerXml = project.file('.idea/compiler.xml')
+    if (ideaCompilerXml.isFile()) {
+      Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
+      updateIdeaCompilerConfiguration(project, parsedProjectXml)
+      ideaCompilerXml.withWriter { writer ->
+        XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
+        nodePrinter.setPreserveWhitespace(true)
+        nodePrinter.print(parsedProjectXml)
+      }
+    }
 
     /**** FindBugs ********************************************************************************/
     project.tasks.withType(FindBugs, { task -> task.doFirst {
