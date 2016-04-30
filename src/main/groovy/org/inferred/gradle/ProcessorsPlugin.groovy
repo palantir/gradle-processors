@@ -1,19 +1,14 @@
 package org.inferred.gradle
 
-import org.gradle.api.GradleException
-
-import java.io.InputStreamReader
-
 import groovy.text.SimpleTemplateEngine
-
-import org.gradle.api.DomainObjectCollection
+import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.quality.FindBugs
-import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.specs.Spec
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
@@ -91,10 +86,8 @@ class ProcessorsPlugin implements Plugin<Project> {
         project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
       }
 
-      project.idea.module.generatedSourceDirs += project.file(project.processors.sourceOutputDir)
-      project.idea.module.sourceDirs += project.file(project.processors.sourceOutputDir)
-      project.idea.module.generatedSourceDirs += project.file(project.processors.testSourceOutputDir)
-      project.idea.module.testSourceDirs += project.file(project.processors.testSourceOutputDir)
+      addGeneratedSourceFolder(project, project.processors.sourceOutputDir, false)
+      addGeneratedSourceFolder(project, project.processors.testSourceOutputDir, true)
 
       // Root project configuration
       if (project.idea.project != null) {
@@ -204,6 +197,38 @@ class ProcessorsPlugin implements Plugin<Project> {
           sourceTestOutputDir(name: project.processors.testSourceOutputDir)
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
+        }
+      }
+    }
+  }
+
+  private static void addGeneratedSourceFolder(
+          Project project,
+          String sourceOutputDir,
+          boolean isTest) {
+    File generatedSourceOutputDir = project.file(sourceOutputDir)
+
+    // add generated directory as source directory
+    project.idea.module.generatedSourceDirs += generatedSourceOutputDir
+    if (!isTest) {
+      project.idea.module.sourceDirs += generatedSourceOutputDir
+    } else {
+      project.idea.module.testSourceDirs += generatedSourceOutputDir
+    }
+
+    // if generated source directory doesn't already exist, Gradle IDEA plugin will not add it as a source folder,
+    // so manually add as generated source folder to the .iml
+    if (!generatedSourceOutputDir.exists()) {
+      project.idea.module.iml {
+        withXml {
+          def content = node.component.content[0]
+          content.appendNode(
+                  'sourceFolder', [
+                  url         : "file://\$MODULE_DIR\$/${sourceOutputDir}",
+                  isTestSource: "${isTest}",
+                  generated   : "true"
+          ]
+          )
         }
       }
     }

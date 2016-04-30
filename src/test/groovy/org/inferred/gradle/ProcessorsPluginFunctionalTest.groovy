@@ -1,22 +1,13 @@
 package org.inferred.gradle
 
-import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
-
-import org.gradle.testkit.runner.BuildResult
+import groovy.util.slurpersupport.NodeChild
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileWriter
-import java.io.IOException
-import java.util.Collections
-
 import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertTrue
 
 public class ProcessorsPluginFunctionalTest {
 
@@ -241,6 +232,90 @@ public class ProcessorsPluginFunctionalTest {
         .build()
         .getStandardError()
     assertEquals("", txt);
+  }
+
+  @Test
+  public void testExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    // create generated source directories
+    testProjectDir.newFolder('generated_src')
+    testProjectDir.newFolder('generated_testSrc')
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/generated_src',
+                    'file://$MODULE_DIR$/generated_testSrc'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
+  }
+
+  @Test
+  public void testNonExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/generated_src',
+                    'file://$MODULE_DIR$/generated_testSrc'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
   }
 
   private void writeBuildscript() {
