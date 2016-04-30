@@ -1,12 +1,14 @@
 package org.inferred.gradle
 
 import groovy.util.slurpersupport.NodeChild
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
+import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
 
 public class ProcessorsPluginFunctionalTest {
@@ -196,7 +198,7 @@ public class ProcessorsPluginFunctionalTest {
         .withProjectDir(testProjectDir.getRoot())
         .withArguments("dependencies")
         .build()
-        .getStandardOutput()
+        .getOutput()
     txt = txt.substring(txt.indexOf("runtime"))
     txt = txt.substring(txt.indexOf("\n") + 1, txt.indexOf("\n\n"))
     assertEquals("No dependencies", txt)
@@ -210,6 +212,10 @@ public class ProcessorsPluginFunctionalTest {
 
       dependencies {
         processor 'com.google.auto.value:auto-value:1.0'
+      }
+
+      javadoc {
+        options.encoding = 'UTF-8'
       }
     """
 
@@ -226,12 +232,14 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    String txt = GradleRunner.create()
+    StringWriter stdErr = new StringWriter()
+    BuildResult result = GradleRunner.create()
         .withProjectDir(testProjectDir.getRoot())
         .withArguments("--info", "javadoc")
+        .forwardStdError(stdErr)
         .build()
-        .getStandardError()
-    assertEquals("", txt);
+    assertEquals(result.task(":javadoc").getOutcome(), SUCCESS);
+    assertEquals("", stdErr.toString());
   }
 
   @Test
