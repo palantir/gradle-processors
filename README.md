@@ -12,16 +12,7 @@ A plugin for Gradle that cleans up integration of Java 6+ [annotation processors
 Quickstart
 ----------
 
-To use it, add the following to your top-level build.gradle file:
-
-```gradle
-
-plugins {
-  id 'org.inferred.processors' version '1.2.1'
-}
-```
-
-And the same without the version number in your subproject build.gradle files:
+To use it, add the following to your project's build.gradle file:
 
 ```gradle
 
@@ -62,11 +53,9 @@ buildscript {
     classpath 'gradle.plugin.org.inferred:gradle-processors:1.2.1'
   }
 }
-
-apply plugin: 'org.inferred.processors'
 ```
 
-And add just the apply directive to your subproject build.gradle files:
+And just the apply directive to your subproject build.gradle files:
 
 ```gradle
 

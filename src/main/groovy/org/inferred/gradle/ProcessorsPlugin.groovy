@@ -90,8 +90,8 @@ class ProcessorsPlugin implements Plugin<Project> {
       addGeneratedSourceFolder(project, project.processors.testSourceOutputDir, true)
 
       // Root project configuration
-      if (project.idea.project != null) {
-        project.idea.project.ipr {
+      if (project.rootProject.idea.project != null) {
+        project.rootProject.idea.project.ipr {
           withXml {
             updateIdeaCompilerConfiguration(project, node)
           }
