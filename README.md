@@ -17,7 +17,7 @@ To use it, add the following to your project's build.gradle file:
 ```gradle
 
 plugins {
-  id 'org.inferred.processors'
+  id 'org.inferred.processors' version '1.2.1'
 }
 ```
 
