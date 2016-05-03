@@ -36,8 +36,7 @@ dependencies {
 
 The `eclipse` and `idea` tasks will now configure your IDE to run annotation processors as part
 of thier regular compilation. Alternatively, you can continue to open your build.gradle file
-directly from within IntelliJ. (Note for IDEA users: be sure to include the processors plugin in
-your root project as well as any child projects, as the IDEA workspace also needs configuration.)
+directly from within IntelliJ.
 
 Gradle 2.0 and earlier
 ----------------------
