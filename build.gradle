@@ -34,6 +34,19 @@ pluginBundle {
   }
 }
 
+// Read publication secrets from environment
+task setupPublishProperties << {
+  def key = System.env.gradlePublishKey
+  if (key) {
+    System.properties.setProperty("gradle.publish.key", key)
+  }
+  def secret = System.env.gradlePublishSecret
+  if (secret) {
+    System.properties.setProperty("gradle.publish.secret", secret)
+  }
+}
+tasks.publishPlugins.dependsOn tasks.setupPublishProperties
+
 // Ensure Java7 compatibility
 tasks.withType(GroovyCompile) {
     sourceCompatibility = '1.7'
