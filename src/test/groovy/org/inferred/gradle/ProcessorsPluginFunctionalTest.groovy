@@ -326,6 +326,50 @@ public class ProcessorsPluginFunctionalTest {
     assertEquals(expected, sourceFolderUrls.toSet())
   }
 
+  @Test
+  public void testOnlyApplyToSubProject() {
+    testProjectDir.newFolder("projectA")
+    testProjectDir.newFolder("projectB")
+
+    File projectABuildFile = testProjectDir.newFile("projectA/build.gradle")
+    File projectBBuildFile = testProjectDir.newFile("projectB/build.gradle")
+    File settingsFile = testProjectDir.newFile("settings.gradle")
+
+    buildFile << """
+      apply plugin: 'idea'
+    """
+
+    settingsFile << """
+      include 'projectA'
+      include 'projectB'
+    """
+
+    projectABuildFile << """
+      apply plugin: 'java'
+    """
+
+    projectBBuildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+        .withProjectDir(testProjectDirRoot)
+        .withArguments("idea")
+        .build()
+
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.ipr").toFile())
+    def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
+    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
+    assertEquals(profile.sourceOutputDir.first().@name, "generated_src")
+  }
+
   private void writeBuildscript() {
     def pluginClasspathResource = getClass().classLoader.findResource("plugin-classpath.txt")
     if (pluginClasspathResource == null) {
