@@ -12,7 +12,7 @@ A plugin for Gradle that cleans up integration of Java 6+ [annotation processors
 Quickstart
 ----------
 
-To use it, add the following to your project's build.gradle file:
+To use it, add the following to your projects' build.gradle file:
 
 ```gradle
 
