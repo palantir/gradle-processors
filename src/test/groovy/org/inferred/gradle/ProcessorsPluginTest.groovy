@@ -66,4 +66,14 @@ class ProcessorsPluginTest {
     assertTrue project.idea.module.generatedSourceDirs.contains(project.file('generated_testSrc'))
   }
 
+  @Test
+  public void addsEclipseConfigurationTasks_eclipseFirst() {
+    Project project = ProjectBuilder.builder().build()
+    project.pluginManager.apply 'org.inferred.processors'
+    project.pluginManager.apply 'eclipse'
+    project.pluginManager.apply 'java'
+
+    assertNotNull project.tasks.eclipseAptPrefs
+    assertNotNull project.tasks.eclipseFactoryPath
+  }
 }
