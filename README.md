@@ -9,8 +9,8 @@ A plugin for Gradle that cleans up integration of Java 6+ [annotation processors
 [IDEA]: https://docs.gradle.org/current/userguide/idea_plugin.html
 [FindBugs]: https://docs.gradle.org/current/userguide/findbugs_plugin.html
 
-[![GitHub release](https://img.shields.io/github/release/palantir/gradle-processors.svg?maxAge=2592000)](https://plugins.gradle.org/plugin/org.inferred.processors)
-[![Travis](https://img.shields.io/travis/palantir/gradle-processors.svg?maxAge=2592000)](https://travis-ci.org/palantir/gradle-processors)
+[![GitHub release](https://img.shields.io/github/release/palantir/gradle-processors.svg?maxAge=60)](https://plugins.gradle.org/plugin/org.inferred.processors)
+[![Travis](https://img.shields.io/travis/palantir/gradle-processors.svg?maxAge=60)](https://travis-ci.org/palantir/gradle-processors)
 [![license](https://img.shields.io/github/license/palantir/gradle-processors.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0)
 
 Quickstart
