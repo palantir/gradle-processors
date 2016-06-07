@@ -21,7 +21,7 @@ To use it, add the following to your projects' build.gradle file:
 ```gradle
 
 plugins {
-  id 'org.inferred.processors' version '1.2.1'
+  id 'org.inferred.processors' version '<LATEST VERSION>'
 }
 ```
 
@@ -53,7 +53,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath 'gradle.plugin.org.inferred:gradle-processors:1.2.1'
+    classpath 'gradle.plugin.org.inferred:gradle-processors:<LATEST VERSION>'
   }
 }
 ```
