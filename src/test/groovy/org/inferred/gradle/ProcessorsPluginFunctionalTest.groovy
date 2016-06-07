@@ -370,6 +370,60 @@ public class ProcessorsPluginFunctionalTest {
     assertEquals(profile.sourceOutputDir.first().@name, "generated_src")
   }
 
+  /** @see https://github.com/palantir/gradle-processors/issues/12 */
+  @Test
+  public void testEclipseClasspathModified_javaPluginFirst() throws IOException {
+    buildFile << """
+      apply plugin: 'org.inferred.processors'
+      apply plugin: 'java'
+      apply plugin: 'eclipse'
+
+      dependencies {
+        processor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    GradleRunner runner = GradleRunner.create()
+    runner
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("eclipse")
+        .build()
+    assertAutoValueInFile(new File(runner.projectDir, ".classpath"))
+    assertAutoValueInFile(new File(runner.projectDir, ".factorypath"))
+  }
+
+  /** @see https://github.com/palantir/gradle-processors/issues/12 */
+  @Test
+  public void testEclipseClasspathModified_eclipsePluginFirst() throws IOException {
+    buildFile << """
+      apply plugin: 'org.inferred.processors'
+      apply plugin: 'eclipse'
+      apply plugin: 'java'
+
+      dependencies {
+        processor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    GradleRunner runner = GradleRunner.create()
+    runner
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("eclipse")
+        .build()
+    assertAutoValueInFile(new File(runner.projectDir, ".classpath"))
+    assertAutoValueInFile(new File(runner.projectDir, ".factorypath"))
+  }
+
+  private void assertAutoValueInFile(File file) {
+    if (!file.any { it.contains("auto-value-1.0.jar") }) {
+      println "====== $file.name ============================================================"
+      file.eachLine() { line ->
+          println line
+      }
+      throw new AssertionError("auto-value-1.0.jar not in $file.name")
+    }
+  }
+
   private void writeBuildscript() {
     def pluginClasspathResource = getClass().classLoader.findResource("plugin-classpath.txt")
     if (pluginClasspathResource == null) {
