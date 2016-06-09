@@ -35,7 +35,7 @@ dependencies {
 ```
 
 The `eclipse` and `idea` tasks will now configure your IDE to run annotation processors as part
-of thier regular compilation. Alternatively, you can continue to open your build.gradle file
+of their regular compilation. Alternatively, you can continue to open your build.gradle file
 directly from within IntelliJ.
 
 Gradle 2.0 and earlier
