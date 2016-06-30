@@ -11,6 +11,7 @@ import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
+import org.gradle.api.tasks.Delete
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -65,7 +66,7 @@ class ProcessorsPlugin implements Plugin<Project> {
               'org/inferred/gradle/apt-prefs.template',
               '.settings/org.eclipse.jdt.apt.core.prefs',
               [
-                sourceOutputDir: project.processors.sourceOutputDir,
+                config: project.processors,
                 deps: project.configurations.processor
               ]
           )
@@ -92,8 +93,8 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
         }
 
-        addGeneratedSourceFolder(project, project.processors.sourceOutputDir, false)
-        addGeneratedSourceFolder(project, project.processors.testSourceOutputDir, true)
+        addGeneratedSourceFolder(project, { project.processors.sourceOutputDir }, false)
+        addGeneratedSourceFolder(project, { project.processors.testSourceOutputDir }, true)
 
         // Root project configuration
         if (project.rootProject.idea.project != null) {
@@ -161,7 +162,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     def outputFile = new File(project.projectDir, outputFilename)
     def cleanTaskName = "clean" + taskName.substring(0, 1).toUpperCase() + taskName.substring(1)
     project.task(taskName, {
-      binding.each{ k, v -> inputs.property k, v }
+      inputs.property 'deps', binding.deps
       outputs.file outputFile
       doLast {
         outputFile.parentFile.mkdirs()
@@ -182,11 +183,9 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
     })
 
-    project.task(cleanTaskName, {
-      doLast {
-        outputFile.delete()
-      }
-    })
+    project.task(cleanTaskName, type: Delete) {
+      delete outputFile
+    }
   }
 
   static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
@@ -211,30 +210,32 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   private static void addGeneratedSourceFolder(
           Project project,
-          String sourceOutputDir,
+          Object sourceOutputDir,
           boolean isTest) {
     File generatedSourceOutputDir = project.file(sourceOutputDir)
 
     // add generated directory as source directory
-    project.idea.module.generatedSourceDirs += generatedSourceOutputDir
+    project.idea.module.generatedSourceDirs += project.file(sourceOutputDir)
     if (!isTest) {
-      project.idea.module.sourceDirs += generatedSourceOutputDir
+      project.idea.module.sourceDirs += project.file(sourceOutputDir)
     } else {
-      project.idea.module.testSourceDirs += generatedSourceOutputDir
+      project.idea.module.testSourceDirs += project.file(sourceOutputDir)
     }
 
     // if generated source directory doesn't already exist, Gradle IDEA plugin will not add it as a source folder,
     // so manually add as generated source folder to the .iml
-    if (!generatedSourceOutputDir.exists()) {
-      project.idea.module.iml {
-        withXml {
-          def content = node.component.content[0]
+    project.idea.module.iml {
+      withXml {
+        def path = project.relativePath(sourceOutputDir)
+        def dirUrl = "file://\$MODULE_DIR\$/${path}"
+        def content = node.component.content[0]
+        if (content.find { it.url == dirUrl } == null) {
           content.appendNode(
-                  'sourceFolder', [
-                  url         : "file://\$MODULE_DIR\$/${sourceOutputDir}",
-                  isTestSource: "${isTest}",
-                  generated   : "true"
-          ]
+              'sourceFolder', [
+                  url          : dirUrl,
+                  isTestSource : isTest,
+                  generated    : "true"
+              ]
           )
         }
       }

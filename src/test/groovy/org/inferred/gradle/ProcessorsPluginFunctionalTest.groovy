@@ -10,6 +10,7 @@ import org.junit.rules.TemporaryFolder
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 
 public class ProcessorsPluginFunctionalTest {
 
@@ -243,6 +244,77 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testEclipseAptPrefs() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'eclipse'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+
+      processors {
+        sourceOutputDir = 'something'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("eclipseAptPrefs")
+            .build()
+
+    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
+
+    def expected = """
+      eclipse.preferences.version=1
+      org.eclipse.jdt.apt.aptEnabled=true
+      org.eclipse.jdt.apt.genSrcDir=something
+      org.eclipse.jdt.apt.reconcileEnabled=true
+    """.replaceFirst('\n','').stripIndent()
+    assertEquals(expected, prefsFile.text)
+  }
+
+  @Test
+  public void testCleanEclipseAptPrefs() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'eclipse'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("eclipseAptPrefs")
+            .build()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("cleanEclipseAptPrefs")
+            .build()
+
+    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
+
+    assertFalse(prefsFile.exists())
+  }
+
+  @Test
   public void testExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -323,6 +395,100 @@ public class ProcessorsPluginFunctionalTest {
     def expected = ['file://$MODULE_DIR$/src/main/java',
                     'file://$MODULE_DIR$/generated_src',
                     'file://$MODULE_DIR$/generated_testSrc'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
+  }
+
+  @Test
+  public void testExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+
+      processors {
+        sourceOutputDir = 'something'
+        testSourceOutputDir = 'something_else'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    // create generated source directories
+    testProjectDir.newFolder('something')
+    testProjectDir.newFolder('something_else')
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/something',
+                    'file://$MODULE_DIR$/something_else'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
+  }
+
+  @Test
+  public void testNonExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+
+      processors {
+        sourceOutputDir = 'something'
+        testSourceOutputDir = 'something_else'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/something',
+                    'file://$MODULE_DIR$/something_else'].toSet()
     assertEquals(expected, sourceFolderUrls.toSet())
   }
 
