@@ -11,6 +11,7 @@ import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
+import org.gradle.api.tasks.Delete
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -182,11 +183,9 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
     })
 
-    project.task(cleanTaskName, {
-      doLast {
-        outputFile.delete()
-      }
-    })
+    project.task(cleanTaskName, type: Delete) {
+      delete outputFile
+    }
   }
 
   static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {

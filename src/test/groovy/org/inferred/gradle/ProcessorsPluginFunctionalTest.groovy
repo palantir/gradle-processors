@@ -10,6 +10,7 @@ import org.junit.rules.TemporaryFolder
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 
 public class ProcessorsPluginFunctionalTest {
 
@@ -283,6 +284,34 @@ public class ProcessorsPluginFunctionalTest {
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n','').stripIndent()
     assertEquals(expected, prefsFile.text)
+  }
+
+  @Test
+  public void testCleanEclipseAptPrefs() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'eclipse'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("eclipseAptPrefs")
+            .build()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("cleanEclipseAptPrefs")
+            .build()
+
+    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
+
+    assertFalse(prefsFile.exists())
   }
 
   @Test
