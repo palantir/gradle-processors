@@ -92,8 +92,8 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
         }
 
-        addGeneratedSourceFolder(project, project.processors.sourceOutputDir, false)
-        addGeneratedSourceFolder(project, project.processors.testSourceOutputDir, true)
+        addGeneratedSourceFolder(project, { project.processors.sourceOutputDir }, false)
+        addGeneratedSourceFolder(project, { project.processors.testSourceOutputDir }, true)
 
         // Root project configuration
         if (project.rootProject.idea.project != null) {
@@ -211,30 +211,32 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   private static void addGeneratedSourceFolder(
           Project project,
-          String sourceOutputDir,
+          Object sourceOutputDir,
           boolean isTest) {
     File generatedSourceOutputDir = project.file(sourceOutputDir)
 
     // add generated directory as source directory
-    project.idea.module.generatedSourceDirs += generatedSourceOutputDir
+    project.idea.module.generatedSourceDirs += project.file(sourceOutputDir)
     if (!isTest) {
-      project.idea.module.sourceDirs += generatedSourceOutputDir
+      project.idea.module.sourceDirs += project.file(sourceOutputDir)
     } else {
-      project.idea.module.testSourceDirs += generatedSourceOutputDir
+      project.idea.module.testSourceDirs += project.file(sourceOutputDir)
     }
 
     // if generated source directory doesn't already exist, Gradle IDEA plugin will not add it as a source folder,
     // so manually add as generated source folder to the .iml
-    if (!generatedSourceOutputDir.exists()) {
-      project.idea.module.iml {
-        withXml {
-          def content = node.component.content[0]
+    project.idea.module.iml {
+      withXml {
+        def path = project.relativePath(sourceOutputDir)
+        def dirUrl = "file://\$MODULE_DIR\$/${path}"
+        def content = node.component.content[0]
+        if (content.find { it.url == dirUrl } == null) {
           content.appendNode(
-                  'sourceFolder', [
-                  url         : "file://\$MODULE_DIR\$/${sourceOutputDir}",
-                  isTestSource: "${isTest}",
-                  generated   : "true"
-          ]
+              'sourceFolder', [
+                  url          : dirUrl,
+                  isTestSource : isTest,
+                  generated    : "true"
+              ]
           )
         }
       }

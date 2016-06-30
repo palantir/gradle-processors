@@ -327,6 +327,100 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+
+      processors {
+        sourceOutputDir = 'something'
+        testSourceOutputDir = 'something_else'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    // create generated source directories
+    testProjectDir.newFolder('something')
+    testProjectDir.newFolder('something_else')
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/something',
+                    'file://$MODULE_DIR$/something_else'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
+  }
+
+  @Test
+  public void testNonExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+
+      processors {
+        sourceOutputDir = 'something'
+        testSourceOutputDir = 'something_else'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+      }
+    """
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea")
+            .build()
+
+    // get source directories from iml file
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
+    def sourceFolderUrls = sourceFolders.collect {
+      ((NodeChild) it).attributes().get('url')
+    }
+
+    def expected = ['file://$MODULE_DIR$/src/main/java',
+                    'file://$MODULE_DIR$/something',
+                    'file://$MODULE_DIR$/something_else'].toSet()
+    assertEquals(expected, sourceFolderUrls.toSet())
+  }
+
+  @Test
   public void testOnlyApplyToSubProject() {
     testProjectDir.newFolder("projectA")
     testProjectDir.newFolder("projectB")
