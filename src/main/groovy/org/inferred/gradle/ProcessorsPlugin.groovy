@@ -21,15 +21,6 @@ class ProcessorsPlugin implements Plugin<Project> {
 
     project.configurations.create('processor')
 
-    project.extensions.create('processors', ProcessorsExtension)
-    project.processors {
-      // Used by Eclipse and IDEA
-      sourceOutputDir = 'generated_src'
-
-      // Used by IDEA (Eclipse does not compile test sources separately)
-      testSourceOutputDir = 'generated_testSrc'
-    }
-
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
       project.sourceSets.each { it.compileClasspath += project.configurations.processor }
@@ -52,6 +43,11 @@ class ProcessorsPlugin implements Plugin<Project> {
       project.plugins.withType(JavaBasePlugin, { javaBasePlugin ->
         project.plugins.withType(JavaPlugin, { javaPlugin ->
           project.eclipse {
+            extensions.create('processors', EclipseProcessorsExtension)
+            processors.conventionMapping.sourceOutputDir = {
+              new File(project.eclipse.classpath.defaultOutputDir, 'generated/java')
+            }
+
             classpath.plusConfigurations += [project.configurations.processor]
             if (jdt != null) {
               jdt.file.withProperties {
@@ -65,11 +61,12 @@ class ProcessorsPlugin implements Plugin<Project> {
               'eclipseAptPrefs',
               'org/inferred/gradle/apt-prefs.template',
               '.settings/org.eclipse.jdt.apt.core.prefs',
-              [
-                config: project.processors,
+              {[
+                sourceOutputDir: project.relativePath(project.eclipse.processors.sourceOutputDir),
                 deps: project.configurations.processor
-              ]
+              ]}
           )
+          project.tasks.eclipseAptPrefs.inputs.file project.configurations.processor
           project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
 
@@ -78,8 +75,9 @@ class ProcessorsPlugin implements Plugin<Project> {
               'eclipseFactoryPath',
               'org/inferred/gradle/factorypath.template',
               '.factorypath',
-              [deps: project.configurations.processor]
+              {[deps: project.configurations.processor]}
           )
+          project.tasks.eclipseFactoryPath.inputs.file project.configurations.processor
           project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
         })
@@ -89,12 +87,18 @@ class ProcessorsPlugin implements Plugin<Project> {
     /**** IntelliJ ********************************************************************************/
     project.plugins.withType(IdeaPlugin, { plugin ->
       project.plugins.withType(JavaPlugin, { javaPlugin ->
+        project.idea.extensions.create('processors', IdeaProcessorsExtension)
+        project.idea.processors {
+          sourceOutputDir = 'generated_src'
+          testSourceOutputDir = 'generated_testSrc'
+        }
+
         if (project.idea.module.scopes.PROVIDED != null) {
           project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
         }
 
-        addGeneratedSourceFolder(project, { project.processors.sourceOutputDir }, false)
-        addGeneratedSourceFolder(project, { project.processors.testSourceOutputDir }, true)
+        addGeneratedSourceFolder(project, { project.idea.processors.sourceOutputDir }, false)
+        addGeneratedSourceFolder(project, { project.idea.processors.testSourceOutputDir }, true)
 
         // Root project configuration
         if (project.rootProject.idea.project != null) {
@@ -162,7 +166,6 @@ class ProcessorsPlugin implements Plugin<Project> {
     def outputFile = new File(project.projectDir, outputFilename)
     def cleanTaskName = "clean" + taskName.substring(0, 1).toUpperCase() + taskName.substring(1)
     project.task(taskName, {
-      inputs.property 'deps', binding.deps
       outputs.file outputFile
       doLast {
         outputFile.parentFile.mkdirs()
@@ -170,7 +173,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         try {
           def reader = new InputStreamReader(stream, "UTF-8")
           def template = new SimpleTemplateEngine().createTemplate(reader)
-          def writable = template.make binding
+          def writable = template.make binding()
           def writer = new FileWriter(outputFile)
           try {
             writable.writeTo(writer)
@@ -199,8 +202,8 @@ class ProcessorsPlugin implements Plugin<Project> {
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: project.processors.sourceOutputDir)
-          sourceTestOutputDir(name: project.processors.testSourceOutputDir)
+          sourceOutputDir(name: project.idea.processors.sourceOutputDir)
+          sourceTestOutputDir(name: project.idea.processors.testSourceOutputDir)
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
@@ -244,7 +247,11 @@ class ProcessorsPlugin implements Plugin<Project> {
 
 }
 
-class ProcessorsExtension {
-  String sourceOutputDir
-  String testSourceOutputDir
+class EclipseProcessorsExtension {
+  Object sourceOutputDir
+}
+
+class IdeaProcessorsExtension {
+  Object sourceOutputDir
+  Object testSourceOutputDir
 }
