@@ -26,9 +26,11 @@ class ProcessorsPluginTest {
   public void addsSourceDirectoryConfiguration() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
+    project.pluginManager.apply 'idea'
+    project.pluginManager.apply 'java'
 
-    assertEquals 'generated_src', project.processors.sourceOutputDir
-    assertEquals 'generated_testSrc', project.processors.testSourceOutputDir
+    assertEquals 'generated_src', project.idea.processors.sourceOutputDir
+    assertEquals 'generated_testSrc', project.idea.processors.testSourceOutputDir
   }
 
   @Test
