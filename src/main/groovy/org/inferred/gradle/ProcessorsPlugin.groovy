@@ -65,7 +65,7 @@ class ProcessorsPlugin implements Plugin<Project> {
               'org/inferred/gradle/apt-prefs.template',
               '.settings/org.eclipse.jdt.apt.core.prefs',
               [
-                sourceOutputDir: project.processors.sourceOutputDir,
+                config: project.processors,
                 deps: project.configurations.processor
               ]
           )
@@ -161,7 +161,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     def outputFile = new File(project.projectDir, outputFilename)
     def cleanTaskName = "clean" + taskName.substring(0, 1).toUpperCase() + taskName.substring(1)
     project.task(taskName, {
-      binding.each{ k, v -> inputs.property k, v }
+      inputs.property 'deps', binding.deps
       outputs.file outputFile
       doLast {
         outputFile.parentFile.mkdirs()
