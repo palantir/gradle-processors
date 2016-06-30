@@ -44,7 +44,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         project.plugins.withType(JavaPlugin, { javaPlugin ->
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
-            processors.conventionMapping.sourceOutputDir = {
+            processors.conventionMapping.outputDir = {
               new File(project.eclipse.classpath.defaultOutputDir, 'generated/java')
             }
 
@@ -62,7 +62,7 @@ class ProcessorsPlugin implements Plugin<Project> {
               'org/inferred/gradle/apt-prefs.template',
               '.settings/org.eclipse.jdt.apt.core.prefs',
               {[
-                sourceOutputDir: project.relativePath(project.eclipse.processors.sourceOutputDir),
+                outputDir: project.relativePath(project.eclipse.processors.outputDir),
                 deps: project.configurations.processor
               ]}
           )
@@ -89,16 +89,16 @@ class ProcessorsPlugin implements Plugin<Project> {
       project.plugins.withType(JavaPlugin, { javaPlugin ->
         project.idea.extensions.create('processors', IdeaProcessorsExtension)
         project.idea.processors {
-          sourceOutputDir = 'generated_src'
-          testSourceOutputDir = 'generated_testSrc'
+          outputDir = 'generated_src'
+          testOutputDir = 'generated_testSrc'
         }
 
         if (project.idea.module.scopes.PROVIDED != null) {
           project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
         }
 
-        addGeneratedSourceFolder(project, { project.idea.processors.sourceOutputDir }, false)
-        addGeneratedSourceFolder(project, { project.idea.processors.testSourceOutputDir }, true)
+        addGeneratedSourceFolder(project, { project.idea.processors.outputDir }, false)
+        addGeneratedSourceFolder(project, { project.idea.processors.testOutputDir }, true)
 
         // Root project configuration
         if (project.rootProject.idea.project != null) {
@@ -202,8 +202,8 @@ class ProcessorsPlugin implements Plugin<Project> {
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: project.idea.processors.sourceOutputDir)
-          sourceTestOutputDir(name: project.idea.processors.testSourceOutputDir)
+          sourceOutputDir(name: project.idea.processors.outputDir)
+          sourceTestOutputDir(name: project.idea.processors.testOutputDir)
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
@@ -213,23 +213,23 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   private static void addGeneratedSourceFolder(
           Project project,
-          Object sourceOutputDir,
+          Object outputDir,
           boolean isTest) {
-    File generatedSourceOutputDir = project.file(sourceOutputDir)
+    File generatedSourceOutputDir = project.file(outputDir)
 
     // add generated directory as source directory
-    project.idea.module.generatedSourceDirs += project.file(sourceOutputDir)
+    project.idea.module.generatedSourceDirs += project.file(outputDir)
     if (!isTest) {
-      project.idea.module.sourceDirs += project.file(sourceOutputDir)
+      project.idea.module.sourceDirs += project.file(outputDir)
     } else {
-      project.idea.module.testSourceDirs += project.file(sourceOutputDir)
+      project.idea.module.testSourceDirs += project.file(outputDir)
     }
 
     // if generated source directory doesn't already exist, Gradle IDEA plugin will not add it as a source folder,
     // so manually add as generated source folder to the .iml
     project.idea.module.iml {
       withXml {
-        def path = project.relativePath(sourceOutputDir)
+        def path = project.relativePath(outputDir)
         def dirUrl = "file://\$MODULE_DIR\$/${path}"
         def content = node.component.content[0]
         if (content.find { it.url == dirUrl } == null) {
@@ -248,10 +248,10 @@ class ProcessorsPlugin implements Plugin<Project> {
 }
 
 class EclipseProcessorsExtension {
-  Object sourceOutputDir
+  Object outputDir
 }
 
 class IdeaProcessorsExtension {
-  Object sourceOutputDir
-  Object testSourceOutputDir
+  Object outputDir
+  Object testOutputDir
 }
