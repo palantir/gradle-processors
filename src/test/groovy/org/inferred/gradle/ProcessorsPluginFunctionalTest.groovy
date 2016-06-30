@@ -335,7 +335,7 @@ public class ProcessorsPluginFunctionalTest {
       }
 
       eclipse.processors {
-        sourceOutputDir = 'something'
+        outputDir = 'something'
       }
     """
 
@@ -490,8 +490,8 @@ public class ProcessorsPluginFunctionalTest {
       }
 
       idea.processors {
-        sourceOutputDir = 'something'
-        testSourceOutputDir = 'something_else'
+        outputDir = 'something'
+        testOutputDir = 'something_else'
       }
     """
 
@@ -539,8 +539,8 @@ public class ProcessorsPluginFunctionalTest {
       }
 
       idea.processors {
-        sourceOutputDir = 'something'
-        testSourceOutputDir = 'something_else'
+        outputDir = 'something'
+        testOutputDir = 'something_else'
       }
     """
 

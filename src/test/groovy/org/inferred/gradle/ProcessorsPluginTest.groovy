@@ -29,8 +29,8 @@ class ProcessorsPluginTest {
     project.pluginManager.apply 'idea'
     project.pluginManager.apply 'java'
 
-    assertEquals 'generated_src', project.idea.processors.sourceOutputDir
-    assertEquals 'generated_testSrc', project.idea.processors.testSourceOutputDir
+    assertEquals 'generated_src', project.idea.processors.outputDir
+    assertEquals 'generated_testSrc', project.idea.processors.testOutputDir
   }
 
   @Test
