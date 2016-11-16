@@ -122,23 +122,6 @@ class ProcessorsPlugin implements Plugin<Project> {
         nodePrinter.print(parsedProjectXml)
       }
     }
-
-    /**** FindBugs ********************************************************************************/
-    project.tasks.withType(FindBugs, { task -> task.doFirst {
-      // Exclude generated sources from FindBugs' traversal.
-      // This trick relies on javac putting the generated .java files next to the .class files.
-      def generatedSources = task.classes.filter {
-        it.path.endsWith '.java'
-      }
-      task.classes = task.classes.filter {
-        File javaFile = new File(it.path
-            .replaceFirst(/\$\w+\.class$/, '')
-            .replaceFirst(/\.class$/, '')
-            + '.java')
-        boolean isGenerated = generatedSources.contains(javaFile)
-        return !isGenerated
-      }
-    }})
   }
 
   /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
@@ -255,3 +238,4 @@ class IdeaProcessorsExtension {
   Object outputDir
   Object testOutputDir
 }
+
