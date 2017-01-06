@@ -199,6 +199,10 @@ class ProcessorsPlugin implements Plugin<Project> {
       throw new GradleException("Unable to find CompilerConfiguration element")
     }
 
+    if (compilerConfiguration.annotationProcessing.isEmpty()) {
+      new Node(compilerConfiguration, "annotationProcessing")
+    }
+
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {

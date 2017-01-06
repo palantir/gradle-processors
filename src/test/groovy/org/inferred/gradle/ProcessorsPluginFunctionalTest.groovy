@@ -573,6 +573,93 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testAnnotationProcessingInIdeaCompilerXml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+    """
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea", "--stacktrace")
+            .build()
+
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile())
+
+    def expected = new XmlSlurper().parseText("""
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="generated_src"/>
+              <sourceTestOutputDir name="generated_testSrc"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.trim())
+
+    assertEquals(expected, xml)
+  }
+
+  @Test
+  public void testNoAnnotationProcessingInIdeaCompilerXml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+    """
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea", "--stacktrace")
+            .build()
+
+    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile())
+
+    def expected = new XmlSlurper().parseText("""
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="generated_src"/>
+              <sourceTestOutputDir name="generated_testSrc"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.trim())
+
+    assertEquals(expected, xml)
+  }
+
+  @Test
   public void testOnlyApplyToSubProject() {
     testProjectDir.newFolder("projectA")
     testProjectDir.newFolder("projectB")
