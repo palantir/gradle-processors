@@ -111,15 +111,17 @@ class ProcessorsPlugin implements Plugin<Project> {
       })
     })
 
-    // If the project uses .idea directory structure, update compiler.xml directly
-    File ideaCompilerXml = project.file('.idea/compiler.xml')
-    if (ideaCompilerXml.isFile()) {
-      Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-      updateIdeaCompilerConfiguration(project, parsedProjectXml)
-      ideaCompilerXml.withWriter { writer ->
-        XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
-        nodePrinter.setPreserveWhitespace(true)
-        nodePrinter.print(parsedProjectXml)
+    project.afterEvaluate {
+      // If the project uses .idea directory structure, update compiler.xml directly
+      File ideaCompilerXml = project.file('.idea/compiler.xml')
+      if (ideaCompilerXml.isFile()) {
+        Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
+        updateIdeaCompilerConfiguration(project, parsedProjectXml)
+        ideaCompilerXml.withWriter { writer ->
+          XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
+          nodePrinter.setPreserveWhitespace(true)
+          nodePrinter.print(parsedProjectXml)
+        }
       }
     }
 
@@ -203,11 +205,18 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
+    def outputDir = 'generated_src'
+    def testOutputDir = 'generated_testSrc'
+    if (project.hasProperty('idea')) {
+      outputDir = project.idea.processors.outputDir
+      testOutputDir = project.idea.processors.testOutputDir
+    }
+
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: project.idea.processors.outputDir)
-          sourceTestOutputDir(name: project.idea.processors.testOutputDir)
+          sourceOutputDir(name: outputDir)
+          sourceTestOutputDir(name: testOutputDir)
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
