@@ -39,6 +39,12 @@ dependencies {
   testRuntime files(createClasspathManifest)
 }
 
+test {
+  testLogging {
+    exceptionFormat = 'full'
+  }
+}
+
 //// Publication //////////////////////////////////////////////////////////////////////
 
 group = 'org.inferred'
