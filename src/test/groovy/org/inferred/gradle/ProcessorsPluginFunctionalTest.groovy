@@ -595,10 +595,9 @@ public class ProcessorsPluginFunctionalTest {
             .withArguments("idea", "--stacktrace")
             .build()
 
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile())
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
 
-    def expected = new XmlSlurper().parseText("""
-      <?xml version="1.0" encoding="UTF-8"?>
+    def expected = """
       <project version="4">
         <component name="CompilerConfiguration">
           <annotationProcessing>
@@ -611,7 +610,7 @@ public class ProcessorsPluginFunctionalTest {
           </annotationProcessing>
         </component>
       </project>
-    """.trim())
+    """.stripIndent().trim()
 
     assertEquals(expected, xml)
   }
@@ -638,10 +637,9 @@ public class ProcessorsPluginFunctionalTest {
             .withArguments("idea", "--stacktrace")
             .build()
 
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile())
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
 
-    def expected = new XmlSlurper().parseText("""
-      <?xml version="1.0" encoding="UTF-8"?>
+    def expected = """
       <project version="4">
         <component name="CompilerConfiguration">
           <annotationProcessing>
@@ -654,7 +652,7 @@ public class ProcessorsPluginFunctionalTest {
           </annotationProcessing>
         </component>
       </project>
-    """.trim())
+    """.stripIndent().trim()
 
     assertEquals(expected, xml)
   }
