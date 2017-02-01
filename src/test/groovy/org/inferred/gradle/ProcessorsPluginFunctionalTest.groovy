@@ -658,6 +658,54 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testUserSpecifiedDirectoriesUsedInIdeaCompilerXml() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+
+      idea.processors {
+        outputDir = 'foo'
+        testOutputDir = 'bar'
+      }
+    """
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea", "--stacktrace")
+            .build()
+
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+
+    def expected = """
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="foo"/>
+              <sourceTestOutputDir name="bar"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    assertEquals(expected, xml)
+  }
+
+  @Test
   public void testOnlyApplyToSubProject() {
     testProjectDir.newFolder("projectA")
     testProjectDir.newFolder("projectB")
@@ -743,6 +791,98 @@ public class ProcessorsPluginFunctionalTest {
         .build()
     assertAutoValueInFile(new File(runner.projectDir, ".classpath"))
     assertAutoValueInFile(new File(runner.projectDir, ".factorypath"))
+  }
+
+  /** @see https://github.com/palantir/gradle-processors/issues/28 */
+  @Test
+  public void testIdeaCompilerConfigurationUpdatedWithoutNeedToApplyIdeaPlugin() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'org.inferred.processors'
+    """
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("tasks", "--stacktrace")
+            .build()
+
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+
+    def expected = """
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="generated_src"/>
+              <sourceTestOutputDir name="generated_testSrc"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    assertEquals(expected, xml)
+  }
+
+  /** @see https://github.com/palantir/gradle-processors/issues/53 */
+  @Test
+  public void testCompilerXmlModificationWhenIdeaPluginImportedLast() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'org.inferred.processors'
+      apply plugin: 'idea'
+
+      idea.processors {
+        outputDir = 'foo'
+        testOutputDir = 'bar'
+      }
+    """
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea", "--stacktrace")
+            .build()
+
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+
+    def expected = """
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="foo"/>
+              <sourceTestOutputDir name="bar"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    assertEquals(expected, xml)
   }
 
   private void assertAutoValueInFile(File file) {
