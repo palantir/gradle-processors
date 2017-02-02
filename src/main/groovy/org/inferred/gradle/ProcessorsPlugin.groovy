@@ -45,7 +45,7 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
             processors.conventionMapping.outputDir = {
-              new File(project.eclipse.classpath.defaultOutputDir, 'generated/java')
+              project.file('generated/java')
             }
 
             classpath.plusConfigurations += [project.configurations.processor]

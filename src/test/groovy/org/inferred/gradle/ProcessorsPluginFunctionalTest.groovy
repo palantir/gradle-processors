@@ -276,48 +276,7 @@ public class ProcessorsPluginFunctionalTest {
     def expected = """
       eclipse.preferences.version=1
       org.eclipse.jdt.apt.aptEnabled=true
-      org.eclipse.jdt.apt.genSrcDir=bin/generated/java
-      org.eclipse.jdt.apt.reconcileEnabled=true
-    """.replaceFirst('\n','').stripIndent()
-    assertEquals(expected, prefsFile.text)
-  }
-
-  @Test
-  public void testEclipseAptPrefsUsesDefaultOutputDir() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'eclipse'
-      apply plugin: 'org.inferred.processors'
-
-      dependencies {
-        processor 'org.immutables:value:2.0.21'
-      }
-
-      eclipse.classpath.defaultOutputDir = file('something')
-    """
-
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
-      import org.immutables.value.Value;
-
-      @Value.Immutable
-      public interface MyClass {
-        @Value.Parameter String getValue();
-      }
-    """
-
-    File testProjectDirRoot = testProjectDir.getRoot()
-
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("eclipseAptPrefs")
-            .build()
-
-    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
-
-    def expected = """
-      eclipse.preferences.version=1
-      org.eclipse.jdt.apt.aptEnabled=true
-      org.eclipse.jdt.apt.genSrcDir=something/generated/java
+      org.eclipse.jdt.apt.genSrcDir=generated/java
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n','').stripIndent()
     assertEquals(expected, prefsFile.text)
