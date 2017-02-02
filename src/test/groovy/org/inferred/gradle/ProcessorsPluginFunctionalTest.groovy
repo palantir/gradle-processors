@@ -740,7 +740,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
         .withProjectDir(testProjectDirRoot)
-        .withArguments("idea")
+        .withArguments("idea", "--stacktrace")
         .build()
 
     def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.ipr").toFile())
@@ -874,6 +874,58 @@ public class ProcessorsPluginFunctionalTest {
             <profile default="true" name="Default" enabled="true">
               <sourceOutputDir name="foo"/>
               <sourceTestOutputDir name="bar"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    assertEquals(expected, xml)
+  }
+
+  /** @see https://github.com/palantir/gradle-processors/issues/53 */
+  @Test
+  public void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
+    buildFile << """
+      project(':A') {
+        apply plugin: 'java'
+        apply plugin: 'idea'
+        apply plugin: 'org.inferred.processors'
+      }
+    """
+
+    testProjectDir.newFolder('A')
+
+    new File(testProjectDir.getRoot(), 'settings.gradle') << """
+      include "A"
+    """.stripIndent().trim()
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("idea", "--stacktrace")
+            .build()
+
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+
+    def expected = """
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="generated_src"/>
+              <sourceTestOutputDir name="generated_testSrc"/>
               <outputRelativeToContentRoot value="true"/>
               <processorPath useClasspath="true"/>
             </profile>

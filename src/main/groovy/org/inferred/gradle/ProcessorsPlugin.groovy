@@ -87,24 +87,33 @@ class ProcessorsPlugin implements Plugin<Project> {
     /**** IntelliJ ********************************************************************************/
     project.plugins.withType(IdeaPlugin, { plugin ->
       project.plugins.withType(JavaPlugin, { javaPlugin ->
-        project.idea.extensions.create('processors', IdeaProcessorsExtension)
-        project.idea.processors {
-          outputDir = 'generated_src'
-          testOutputDir = 'generated_testSrc'
+        if (project == project.rootProject) {
+          // Generated source directories can only be specified per-workspace in IntelliJ.
+          // As such, it only makes sense to allow the user to configure them on the root project.
+          // If the gradle-processors plugin is not applied to the root project, we just use
+          //   the default values.
+          project.idea.extensions.create('processors', IdeaProcessorsExtension)
+          project.idea.processors {
+            outputDir = 'generated_src'
+            testOutputDir = 'generated_testSrc'
+          }
         }
 
         if (project.idea.module.scopes.PROVIDED != null) {
           project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
         }
 
-        addGeneratedSourceFolder(project, { project.idea.processors.outputDir }, false)
-        addGeneratedSourceFolder(project, { project.idea.processors.testOutputDir }, true)
+        addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
+        addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
 
         // Root project configuration
-        if (project.rootProject.idea.project != null) {
+        if (project.rootProject.hasProperty('idea') && project.rootProject.idea.project != null) {
           project.rootProject.idea.project.ipr {
             withXml {
-              updateIdeaCompilerConfiguration(project, node)
+              // This file is only generated in the root project, but the user may not have applied
+              //   the gradle-processors plugin to the root project. Instead, we update it from
+              //   every project idempotently.
+              updateIdeaCompilerConfiguration(project.rootProject, node)
             }
           }
         }
@@ -113,10 +122,13 @@ class ProcessorsPlugin implements Plugin<Project> {
 
     project.afterEvaluate {
       // If the project uses .idea directory structure, update compiler.xml directly
-      File ideaCompilerXml = project.file('.idea/compiler.xml')
+      // This file is only generated in the root project, but the user may not have applied
+      //   the gradle-processors plugin to the root project. Instead, we update it from every
+      //   project idempotently.
+      File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
       if (ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-        updateIdeaCompilerConfiguration(project, parsedProjectXml)
+        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml)
         ideaCompilerXml.withWriter { writer ->
           XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
           nodePrinter.setPreserveWhitespace(true)
@@ -205,18 +217,11 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
-    def outputDir = 'generated_src'
-    def testOutputDir = 'generated_testSrc'
-    if (project.hasProperty('idea')) {
-      outputDir = project.idea.processors.outputDir
-      testOutputDir = project.idea.processors.testOutputDir
-    }
-
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: outputDir)
-          sourceTestOutputDir(name: testOutputDir)
+          sourceOutputDir(name: getIdeaSourceOutputDir(project))
+          sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
@@ -255,6 +260,22 @@ class ProcessorsPlugin implements Plugin<Project> {
           )
         }
       }
+    }
+  }
+
+  private static String getIdeaSourceOutputDir(Project project) {
+    if (project.rootProject.hasProperty('idea') && project.rootProject.idea.hasProperty('processors')) {
+      return project.rootProject.idea.processors.outputDir
+    } else {
+      return 'generated_src'
+    }
+  }
+
+  private static String getIdeaSourceTestOutputDir(Project project) {
+    if (project.rootProject.hasProperty('idea') && project.rootProject.idea.hasProperty('processors')) {
+      return project.rootProject.idea.processors.testOutputDir
+    } else {
+      return 'generated_testSrc'
     }
   }
 
