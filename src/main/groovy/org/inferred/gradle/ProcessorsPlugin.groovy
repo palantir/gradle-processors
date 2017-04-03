@@ -220,9 +220,8 @@ class ProcessorsPlugin implements Plugin<Project> {
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: getIdeaSourceOutputDir(project))
-          sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
-          outputRelativeToContentRoot(value: 'true')
+          sourceOutputDir(name: '../../../' + getIdeaSourceOutputDir(project))
+          sourceTestOutputDir(name: '../../../' + getIdeaSourceTestOutputDir(project))
           processorPath(useClasspath: 'true')
         }
       }
