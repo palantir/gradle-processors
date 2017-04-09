@@ -151,7 +151,8 @@ public class ProcessorsPluginFunctionalTest {
       apply plugin: 'org.inferred.processors'
 
       dependencies {
-        processor 'org.immutables:value:2.0.21'
+        processor 'com.google.code.findbugs:findbugs-annotations:3.0.1'
+        processor 'org.immutables:value:2.1.12'
       }
     """
 
