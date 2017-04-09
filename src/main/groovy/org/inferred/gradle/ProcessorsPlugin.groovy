@@ -9,7 +9,6 @@ import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
@@ -136,23 +135,6 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     }
-
-    /**** FindBugs ********************************************************************************/
-    project.tasks.withType(FindBugs, { task -> task.doFirst {
-      // Exclude generated sources from FindBugs' traversal.
-      // This trick relies on javac putting the generated .java files next to the .class files.
-      def generatedSources = task.classes.filter {
-        it.path.endsWith '.java'
-      }
-      task.classes = task.classes.filter {
-        File javaFile = new File(it.path
-            .replaceFirst(/\$\w+\.class$/, '')
-            .replaceFirst(/\.class$/, '')
-            + '.java')
-        boolean isGenerated = generatedSources.contains(javaFile)
-        return !isGenerated
-      }
-    }})
   }
 
   /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
