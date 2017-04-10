@@ -11,6 +11,9 @@ import org.junit.rules.TemporaryFolder
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 
 public class ProcessorsPluginFunctionalTest {
 
@@ -145,22 +148,35 @@ public class ProcessorsPluginFunctionalTest {
 
   @Test
   public void testFindBugsIntegration() throws IOException {
+    // Version 2.0.21 of Immutables generates code that FindBugs takes exception to.
+    // The antipatterns 1.0 plugin causes issues if it cannot find supertypes.
     buildFile << """
+      repositories {
+        maven {
+          url  "https://dl.bintray.com/palantir/releases"
+        }
+      }
       apply plugin: 'java'
       apply plugin: 'findbugs'
       apply plugin: 'org.inferred.processors'
 
       dependencies {
+        findbugsPlugins 'com.palantir.antipatterns:antipatterns:1.0'
         processor 'org.immutables:value:2.0.21'
+        compile 'com.google.code.findbugs:annotations:3.0.0'
       }
     """
 
     new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
       import org.immutables.value.Value;
 
       @Value.Immutable
       public interface MyClass {
         @Value.Parameter String getValue();
+
+        @SuppressFBWarnings("PT_EXTENDS_CONCRETE_TYPE")
+        class Builder extends ImmutableMyClass.Builder {}
       }
     """
 
@@ -168,6 +184,10 @@ public class ProcessorsPluginFunctionalTest {
         .withProjectDir(testProjectDir.getRoot())
         .withArguments("findbugsMain")
         .build()
+
+    // Ensure no missing classes were reported
+    def report = new File(testProjectDir.root, 'build/reports/findbugs/main.xml').text
+    assertThat(report, not(containsString('<MissingClass>')))
   }
 
   @Test

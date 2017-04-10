@@ -139,23 +139,42 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
 
     /**** FindBugs ********************************************************************************/
-    project.tasks.withType(FindBugs, { task -> task.doFirst {
-      if (project.processors.suppressFindbugs) {
-        // Exclude generated sources from FindBugs' traversal.
-        // This trick relies on javac putting the generated .java files next to the .class files.
-        def generatedSources = task.classes.filter {
+    project.tasks.withType(FindBugs, { findBugsTask ->
+      // Create a JAR containing all generated sources.
+      // This trick relies on javac putting the generated .java files next to the .class files.
+      def jarTask = project.tasks.create(
+          name: findBugsTask.name + 'GeneratedClassesJar',
+          type: org.gradle.api.tasks.bundling.Jar)
+      jarTask.setDependsOn(findBugsTask.dependsOn)
+      jarTask.doFirst {
+        def generatedSources = findBugsTask.classes.filter {
           it.path.endsWith '.java'
         }
-        task.classes = task.classes.filter {
-          File javaFile = new File(it.path
-              .replaceFirst(/\$\w+\.class$/, '')
-              .replaceFirst(/\.class$/, '')
-              + '.java')
-          boolean isGenerated = generatedSources.contains(javaFile)
-          return !isGenerated
+        Set<File> generatedClasses = findBugsTask.classes.filter {
+          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
+          boolean isGenerated = generatedSources.contains(new File(javaFile))
+          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          while (outerFile != javaFile) {
+            javaFile = outerFile
+            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
+            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          }
+          return isGenerated
+        }.files
+        generatedClasses.each { jarTask.from(it) }
+      }
+      findBugsTask.dependsOn jarTask
+      findBugsTask.doFirst {
+        if (project.processors.suppressFindbugs) {
+          // Exclude generated sources from FindBugs' traversal.
+          findBugsTask.classes = findBugsTask.classes.filter { !jarTask.inputs.files.contains(it) }
+
+          // Include the generated sources JAR on the FindBugs classpath
+          def generatedClassesJar = jarTask.outputs.files.files.find { true }
+          findBugsTask.classpath += project.files(generatedClassesJar)
         }
       }
-    }})
+    })
   }
 
   /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
