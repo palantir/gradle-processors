@@ -600,9 +600,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="generated_src"/>
-              <sourceTestOutputDir name="generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../generated_src"/>
+              <sourceTestOutputDir name="../../../generated_testSrc"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
@@ -642,9 +641,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="generated_src"/>
-              <sourceTestOutputDir name="generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../generated_src"/>
+              <sourceTestOutputDir name="../../../generated_testSrc"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
@@ -690,9 +688,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="foo"/>
-              <sourceTestOutputDir name="bar"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../foo"/>
+              <sourceTestOutputDir name="../../../bar"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
@@ -744,7 +741,7 @@ public class ProcessorsPluginFunctionalTest {
     def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.ipr").toFile())
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
     def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
-    assertEquals(profile.sourceOutputDir.first().@name, "generated_src")
+    assertEquals(profile.sourceOutputDir.first().@name, "../../../generated_src")
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/12 */
@@ -821,9 +818,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="generated_src"/>
-              <sourceTestOutputDir name="generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../generated_src"/>
+              <sourceTestOutputDir name="../../../generated_testSrc"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
@@ -870,9 +866,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="foo"/>
-              <sourceTestOutputDir name="bar"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../foo"/>
+              <sourceTestOutputDir name="../../../bar"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
@@ -922,9 +917,8 @@ public class ProcessorsPluginFunctionalTest {
         <component name="CompilerConfiguration">
           <annotationProcessing>
             <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="generated_src"/>
-              <sourceTestOutputDir name="generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
+              <sourceOutputDir name="../../../generated_src"/>
+              <sourceTestOutputDir name="../../../generated_testSrc"/>
               <processorPath useClasspath="true"/>
             </profile>
           </annotationProcessing>
