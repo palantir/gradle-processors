@@ -170,6 +170,45 @@ public class ProcessorsPluginFunctionalTest {
         .build()
   }
 
+  @Test
+  public void testFindBugsIntegrationImmutablesEnclosing() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'findbugs'
+      apply plugin: 'org.inferred.processors'
+
+      processors {
+        suppressFindbugs = false
+      }
+
+      dependencies {
+        processor 'com.google.code.findbugs:findbugs-annotations:3.0.1'
+        processor 'org.immutables:value:2.4.0'
+
+        compile 'com.fasterxml.jackson.core:jackson-databind:2.8.6'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+      import org.immutables.value.Value;
+
+      @Value.Enclosing
+      public interface MyClass {
+        @Value.Immutable
+        @JsonDeserialize(as = ImmutableMyClass.Inner.class)
+        interface Inner {
+          @Value.Parameter String getValue();
+        }
+      }
+    """
+
+    GradleRunner.create()
+        .withProjectDir(testProjectDir.getRoot())
+        .withArguments("findbugsMain")
+        .build()
+  }
+
   /** @see https://github.com/palantir/gradle-processors/issues/3 */
   @Test
   public void testProcessorJarsNotExported() throws IOException {

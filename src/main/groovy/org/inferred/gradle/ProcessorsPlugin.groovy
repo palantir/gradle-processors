@@ -20,6 +20,7 @@ class ProcessorsPlugin implements Plugin<Project> {
   void apply(Project project) {
 
     project.configurations.create('processor')
+    project.extensions.create('processors', ProcessorsExtension)
 
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
@@ -139,18 +140,20 @@ class ProcessorsPlugin implements Plugin<Project> {
 
     /**** FindBugs ********************************************************************************/
     project.tasks.withType(FindBugs, { task -> task.doFirst {
-      // Exclude generated sources from FindBugs' traversal.
-      // This trick relies on javac putting the generated .java files next to the .class files.
-      def generatedSources = task.classes.filter {
-        it.path.endsWith '.java'
-      }
-      task.classes = task.classes.filter {
-        File javaFile = new File(it.path
-            .replaceFirst(/\$\w+\.class$/, '')
-            .replaceFirst(/\.class$/, '')
-            + '.java')
-        boolean isGenerated = generatedSources.contains(javaFile)
-        return !isGenerated
+      if (project.processors.suppressFindbugs) {
+        // Exclude generated sources from FindBugs' traversal.
+        // This trick relies on javac putting the generated .java files next to the .class files.
+        def generatedSources = task.classes.filter {
+          it.path.endsWith '.java'
+        }
+        task.classes = task.classes.filter {
+          File javaFile = new File(it.path
+              .replaceFirst(/\$\w+\.class$/, '')
+              .replaceFirst(/\.class$/, '')
+              + '.java')
+          boolean isGenerated = generatedSources.contains(javaFile)
+          return !isGenerated
+        }
       }
     }})
   }
@@ -279,6 +282,10 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
+}
+
+class ProcessorsExtension {
+  boolean suppressFindbugs = true
 }
 
 class EclipseProcessorsExtension {
