@@ -260,7 +260,8 @@ public class ProcessorsPluginFunctionalTest {
         .build()
         .getOutput()
     txt = txt.substring(txt.indexOf("runtime"))
-    txt = txt.substring(txt.indexOf("\n") + 1, txt.indexOf("\n\n"))
+    txt = txt.substring(txt.indexOf(System.lineSeparator()) + System.lineSeparator().length(),
+            txt.indexOf(System.lineSeparator() + System.lineSeparator()))
     assertEquals("No dependencies", txt)
   }
 
@@ -335,7 +336,7 @@ public class ProcessorsPluginFunctionalTest {
     def expected = """
       eclipse.preferences.version=1
       org.eclipse.jdt.apt.aptEnabled=true
-      org.eclipse.jdt.apt.genSrcDir=generated/java
+      org.eclipse.jdt.apt.genSrcDir=generated${File.separator}java
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n','').stripIndent()
     assertEquals(expected, prefsFile.text)
