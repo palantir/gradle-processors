@@ -14,6 +14,7 @@ import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 class ProcessorsPlugin implements Plugin<Project> {
 
@@ -172,6 +173,31 @@ class ProcessorsPlugin implements Plugin<Project> {
           // Include the generated sources JAR on the FindBugs classpath
           def generatedClassesJar = jarTask.outputs.files.files.find { true }
           findBugsTask.classpath += project.files(generatedClassesJar)
+        }
+      }
+    })
+
+    /**** JaCoCo ********************************************************************************/
+    project.tasks.withType(JacocoReport, { jacocoReportTask ->
+      // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
+      jacocoReportTask.doFirst {
+        def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
+          it.path.endsWith '.java'
+        }
+
+        //
+        jacocoReportTask.classDirectories = jacocoReportTask.classDirectories.asFileTree.filter {
+          if (generatedSources.contains(it)) return false
+
+          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
+          boolean isGenerated = generatedSources.contains(new File(javaFile))
+          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          while (outerFile != javaFile) {
+            javaFile = outerFile
+            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
+            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          }
+          return !isGenerated
         }
       }
     })
