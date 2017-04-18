@@ -14,7 +14,6 @@ import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
-import org.gradle.testing.jacoco.tasks.JacocoReport
 
 class ProcessorsPlugin implements Plugin<Project> {
 
@@ -178,7 +177,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
 
     /**** JaCoCo ********************************************************************************/
-    project.tasks.withType(JacocoReport, { jacocoReportTask ->
+    project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
       // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
         def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
@@ -323,6 +322,16 @@ class ProcessorsPlugin implements Plugin<Project> {
       return project.rootProject.idea.processors.testOutputDir
     } else {
       return 'generated_testSrc'
+    }
+  }
+
+  private static Class getJacocoReportClass() {
+    try {
+      // Only exists in Gradle 1.6+
+      return Class.forName('org.gradle.testing.jacoco.tasks.JacocoReport')
+    } catch (ClassNotFoundException ex) {
+      // Couldn't find JacocoReport, skip JaCoCo integration
+      return Void.class
     }
   }
 
