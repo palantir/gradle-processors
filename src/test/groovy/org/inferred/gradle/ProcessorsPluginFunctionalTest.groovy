@@ -229,6 +229,64 @@ public class ProcessorsPluginFunctionalTest {
         .build()
   }
 
+  @Test
+  public void testJacocoIntegration() throws IOException {
+    buildFile << """
+      repositories {
+        maven {
+          url  "https://dl.bintray.com/palantir/releases"
+        }
+      }
+      apply plugin: 'java'
+      apply plugin: 'jacoco'
+      apply plugin: 'org.inferred.processors'
+      
+      jacocoTestReport {
+        reports {
+          xml.enabled true
+          html.enabled false
+        }
+      }
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+        testCompile "junit:junit:4.12"
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+
+        class Builder extends ImmutableMyClass.Builder {}
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'test', 'java'), 'MyClassTest.java') << """
+      import org.junit.Test;
+
+      public class MyClassTest {
+         @Test
+         public void testBuilder() {
+            new MyClass.Builder();
+         }        
+      }
+    """
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("test", "jacocoTestReport")
+            .build()
+
+    // Ensure generated classes not included in JaCoCo report
+    def report = new File(testProjectDir.root, 'build/reports/jacoco/test/jacocoTestReport.xml').text
+    assertThat(report, not(containsString('name="Immutable')))
+    assertThat(report, not(containsString('covered="0"')))
+  }
+
   /** @see https://github.com/palantir/gradle-processors/issues/3 */
   @Test
   public void testProcessorJarsNotExported() throws IOException {

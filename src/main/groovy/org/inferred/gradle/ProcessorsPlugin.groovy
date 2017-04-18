@@ -175,6 +175,31 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     })
+
+    /**** JaCoCo ********************************************************************************/
+    project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
+      // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
+      jacocoReportTask.doFirst {
+        def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
+          it.path.endsWith '.java'
+        }
+
+        //
+        jacocoReportTask.classDirectories = jacocoReportTask.classDirectories.asFileTree.filter {
+          if (generatedSources.contains(it)) return false
+
+          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
+          boolean isGenerated = generatedSources.contains(new File(javaFile))
+          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          while (outerFile != javaFile) {
+            javaFile = outerFile
+            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
+            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
+          }
+          return !isGenerated
+        }
+      }
+    })
   }
 
   /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
@@ -297,6 +322,16 @@ class ProcessorsPlugin implements Plugin<Project> {
       return project.rootProject.idea.processors.testOutputDir
     } else {
       return 'generated_testSrc'
+    }
+  }
+
+  private static Class getJacocoReportClass() {
+    try {
+      // Only exists in Gradle 1.6+
+      return Class.forName('org.gradle.testing.jacoco.tasks.JacocoReport')
+    } catch (ClassNotFoundException ex) {
+      // Couldn't find JacocoReport, skip JaCoCo integration
+      return Void.class
     }
   }
 
