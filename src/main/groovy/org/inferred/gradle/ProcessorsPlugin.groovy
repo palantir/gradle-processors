@@ -114,7 +114,7 @@ class ProcessorsPlugin implements Plugin<Project> {
               // This file is only generated in the root project, but the user may not have applied
               //   the gradle-processors plugin to the root project. Instead, we update it from
               //   every project idempotently.
-              updateIdeaCompilerConfiguration(project.rootProject, node)
+              updateIdeaCompilerConfiguration(project.rootProject, node, false)
             }
           }
         }
@@ -129,7 +129,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
       if (ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml)
+        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, true)
         ideaCompilerXml.withWriter { writer ->
           XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
           nodePrinter.setPreserveWhitespace(true)
@@ -252,7 +252,10 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
+  static void updateIdeaCompilerConfiguration(
+      Project project,
+      Node projectConfiguration,
+      boolean directoryBasedProject) {
     Object compilerConfiguration = projectConfiguration.component
             .find { it.@name == 'CompilerConfiguration' }
 
@@ -264,11 +267,14 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
+    def dirPrefix = (directoryBasedProject ? '../' : '')
+
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: '../../../' + getIdeaSourceOutputDir(project))
-          sourceTestOutputDir(name: '../../../' + getIdeaSourceTestOutputDir(project))
+          sourceOutputDir(name: dirPrefix + getIdeaSourceOutputDir(project))
+          sourceTestOutputDir(name: dirPrefix + getIdeaSourceTestOutputDir(project))
+          outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
       }
