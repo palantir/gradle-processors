@@ -63,7 +63,7 @@ class ProcessorsPlugin implements Plugin<Project> {
               'org/inferred/gradle/apt-prefs.template',
               '.settings/org.eclipse.jdt.apt.core.prefs',
               {[
-                outputDir: project.relativePath(project.eclipse.processors.outputDir),
+                outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
                 deps: project.configurations.processor
               ]}
           )
