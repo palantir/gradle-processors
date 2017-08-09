@@ -97,6 +97,7 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.idea.processors {
             outputDir = 'generated_src'
             testOutputDir = 'generated_testSrc'
+            updateCompilerXml = true
           }
         }
 
@@ -126,8 +127,11 @@ class ProcessorsPlugin implements Plugin<Project> {
       // This file is only generated in the root project, but the user may not have applied
       //   the gradle-processors plugin to the root project. Instead, we update it from every
       //   project idempotently.
+      boolean updateCompilerXml = (!project.hasProperty('idea')
+              || !project.idea.hasProperty('processors')
+              || project.idea.processors.updateCompilerXml)
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
-      if (ideaCompilerXml.isFile()) {
+      if (updateCompilerXml && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
         updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, true)
         ideaCompilerXml.withWriter { writer ->
@@ -354,4 +358,5 @@ class EclipseProcessorsExtension {
 class IdeaProcessorsExtension {
   Object outputDir
   Object testOutputDir
+  boolean updateCompilerXml
 }
