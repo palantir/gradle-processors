@@ -669,7 +669,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
@@ -693,6 +693,36 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testCompilerXmlNotTouchedIfIdeaNotActive() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+    """
+
+    def expected = """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.trim()
+
+    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << expected
+
+    File testProjectDirRoot = testProjectDir.getRoot()
+    GradleRunner.create()
+            .withProjectDir(testProjectDirRoot)
+            .withArguments("--stacktrace")
+            .build()
+
+    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+
+    assertEquals(expected, xml)
+  }
+
+  @Test
   public void testNoAnnotationProcessingInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -711,7 +741,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
@@ -785,7 +815,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
@@ -916,7 +946,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
@@ -965,7 +995,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
@@ -1017,7 +1047,7 @@ public class ProcessorsPluginFunctionalTest {
     File testProjectDirRoot = testProjectDir.getRoot()
     GradleRunner.create()
             .withProjectDir(testProjectDirRoot)
-            .withArguments("tasks", "--stacktrace")
+            .withArguments("-Didea.active=true", "--stacktrace")
             .build()
 
     def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()

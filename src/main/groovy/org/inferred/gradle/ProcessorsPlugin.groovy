@@ -122,12 +122,14 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
 
     project.afterEvaluate {
-      // If the project uses .idea directory structure, update compiler.xml directly
+      // If the project uses .idea directory structure, and we are running within IntelliJ, update
+      //   compiler.xml directly
       // This file is only generated in the root project, but the user may not have applied
       //   the gradle-processors plugin to the root project. Instead, we update it from every
       //   project idempotently.
+      def inIntelliJ = System.properties.'idea.active' as boolean
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
-      if (ideaCompilerXml.isFile()) {
+      if (inIntelliJ && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
         updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, true)
         ideaCompilerXml.withWriter { writer ->
