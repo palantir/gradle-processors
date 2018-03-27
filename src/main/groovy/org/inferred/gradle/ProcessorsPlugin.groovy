@@ -9,7 +9,7 @@ import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.plugins.ScalaPlugin
+import org.gradle.api.plugins.scala.ScalaPlugin
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
