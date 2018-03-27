@@ -9,6 +9,7 @@ import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.scala.ScalaPlugin
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
@@ -35,6 +36,23 @@ class ProcessorsPlugin implements Plugin<Project> {
         doLast {
           Set<File> path = getProcessors(project).files
           project.javadoc.options.classpath += path
+        }
+      })
+    })
+
+    /**** Scala ***********************************************************************************/
+    project.plugins.withType(ScalaPlugin, { plugin ->
+      project.sourceSets.each { it.compileClasspath += project.configurations.processor }
+      project.compileScala.dependsOn project.task('processorPath', {
+        doLast {
+          String path = getProcessors(project).getAsPath()
+          project.compileScala.options.compilerArgs += ["-processorpath", path]
+        }
+      })
+      project.scaladoc.dependsOn project.task('javadocProcessors', {
+        doLast {
+          Set<File> path = getProcessors(project).files
+          project.scaladoc.options.classpath += path
         }
       })
     })

@@ -1,6 +1,7 @@
 plugins {
   id 'java-gradle-plugin'
   id 'groovy'
+  id 'scala'
   id 'idea'
   id 'com.gradle.plugin-publish' version '0.9.7'
   id 'com.palantir.git-version' version '0.2.0'
