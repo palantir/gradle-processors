@@ -1,14 +1,14 @@
 package org.inferred.gradle
 
+
+import org.gradle.api.Project
+import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.testfixtures.ProjectBuilder
+import org.junit.Test
+
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
-
-import org.junit.Test
-
-import org.gradle.api.Project
-import org.gradle.api.artifacts.ModuleDependency
-import org.gradle.testfixtures.ProjectBuilder
 
 class ProcessorsPluginTest {
 
@@ -77,5 +77,21 @@ class ProcessorsPluginTest {
 
     assertNotNull project.tasks.eclipseAptPrefs
     assertNotNull project.tasks.eclipseFactoryPath
+  }
+
+  @Test
+  public void picksUpNewSourceSets() {
+    Project project = ProjectBuilder.builder().build()
+    project.pluginManager.apply 'org.inferred.processors'
+    project.pluginManager.apply 'java'
+    getJavaConvention(project).sourceSets {
+      foo
+    }
+
+    assertTrue project.tasks.compileFooJava.dependsOn.contains(project.tasks.processorPathCompileFooJava)
+  }
+
+  private static JavaPluginConvention getJavaConvention(Project project) {
+    project.convention.plugins['java'] as JavaPluginConvention
   }
 }
