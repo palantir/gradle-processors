@@ -1,5 +1,6 @@
 package org.inferred.gradle
 
+import com.sun.xml.internal.ws.util.StringUtils
 import groovy.text.SimpleTemplateEngine
 import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectCollection
@@ -9,9 +10,12 @@ import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -24,19 +28,24 @@ class ProcessorsPlugin implements Plugin<Project> {
 
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
-      project.sourceSets.each { it.compileClasspath += project.configurations.processor }
-      project.compileJava.dependsOn project.task('processorPath', {
-        doLast {
-          String path = getProcessors(project).getAsPath()
-          project.compileJava.options.compilerArgs += ["-processorpath", path]
-        }
-      })
-      project.javadoc.dependsOn project.task('javadocProcessors', {
-        doLast {
-          Set<File> path = getProcessors(project).files
-          project.javadoc.options.classpath += path
-        }
-      })
+      def convention = project.convention.plugins['java'] as JavaPluginConvention
+      convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
+      project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
+        compileTask.dependsOn project.task('processorPath' + StringUtils.capitalize(compileTask.name), {
+          doLast {
+            String path = getProcessors(project).getAsPath()
+            compileTask.options.compilerArgs += ["-processorpath", path]
+          }
+        })
+      }
+      project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
+        javadocTask.dependsOn project.task('javadocProcessors' + StringUtils.capitalize(javadocTask.name), {
+          doLast {
+            Set<File> path = getProcessors(project).files
+            javadocTask.options.classpath += path
+          }
+        })
+      }
     })
 
     /**** Eclipse *********************************************************************************/
