@@ -1,6 +1,6 @@
 package org.inferred.gradle
 
-import com.sun.xml.internal.ws.util.StringUtils
+
 import groovy.text.SimpleTemplateEngine
 import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectCollection
@@ -18,6 +18,7 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.util.GUtil
 
 class ProcessorsPlugin implements Plugin<Project> {
 
@@ -31,7 +32,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       def convention = project.convention.plugins['java'] as JavaPluginConvention
       convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
-        compileTask.dependsOn project.task('processorPath' + StringUtils.capitalize(compileTask.name), {
+        compileTask.dependsOn project.task(GUtil.toCamelCase('processorPath ' + compileTask.name), {
           doLast {
             String path = getProcessors(project).getAsPath()
             compileTask.options.compilerArgs += ["-processorpath", path]
@@ -39,7 +40,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         })
       }
       project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
-        javadocTask.dependsOn project.task('javadocProcessors' + StringUtils.capitalize(javadocTask.name), {
+        javadocTask.dependsOn project.task(GUtil.toCamelCase('javadocProcessors ' + javadocTask.name), {
           doLast {
             Set<File> path = getProcessors(project).files
             javadocTask.options.classpath += path
