@@ -9,11 +9,12 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
+import static org.hamcrest.CoreMatchers.containsString
+import static org.hamcrest.CoreMatchers.not
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat
+import static org.junit.Assert.assertTrue
 
 public class ProcessorsPluginFunctionalTest {
 
@@ -357,8 +358,8 @@ public class ProcessorsPluginFunctionalTest {
         .withArguments("--info", "javadoc")
         .forwardStdError(stdErr)
         .build()
-    assertEquals(result.task(":javadoc").getOutcome(), SUCCESS);
-    assertEquals("", stdErr.toString());
+    assertEquals(result.task(":javadoc").getOutcome(), SUCCESS)
+    assertTrue(stdErr.toString().readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty())
   }
 
   @Test
