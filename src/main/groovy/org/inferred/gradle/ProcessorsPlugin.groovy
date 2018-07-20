@@ -32,7 +32,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       def convention = project.convention.plugins['java'] as JavaPluginConvention
       convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
-        compileTask.dependsOn project.task(GUtil.toCamelCase('processorPath ' + compileTask.name), {
+        compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
           doLast {
             String path = getProcessors(project).getAsPath()
             compileTask.options.compilerArgs += ["-processorpath", path]
@@ -40,7 +40,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         })
       }
       project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
-        javadocTask.dependsOn project.task(GUtil.toCamelCase('javadocProcessors ' + javadocTask.name), {
+        javadocTask.dependsOn project.task(GUtil.toLowerCamelCase('javadocProcessors ' + javadocTask.name), {
           doLast {
             Set<File> path = getProcessors(project).files
             javadocTask.options.classpath += path
