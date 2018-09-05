@@ -27,16 +27,16 @@ class ProcessorsPlugin implements Plugin<Project> {
     def processorConf = project.configurations.create('processor')
     project.extensions.create('processors', ProcessorsExtension)
 
-    // compat with gradle 4.6 annotationProcessor
-    def annotationProcessor = project.configurations.findByName('annotationProcessor')
-    if (annotationProcessor != null) {
-      processorConf.extendsFrom(annotationProcessor)
-    }
-
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
       def convention = project.convention.plugins['java'] as JavaPluginConvention
       convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
+      // compat with gradle 4.6 annotationProcessor
+      def annotationProcessor = project.configurations.findByName('annotationProcessor')
+      if (annotationProcessor != null) {
+        processorConf.extendsFrom(annotationProcessor)
+      }
+
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
         compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
           doLast {
