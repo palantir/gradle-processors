@@ -58,6 +58,37 @@ public class ProcessorsPluginFunctionalTest {
   }
 
   @Test
+  public void testAnnotationProcessor() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'org.inferred.processors'
+
+      dependencies {
+        annotationProcessor 'com.google.auto.value:auto-value:1.0'
+      }
+    """
+
+    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+      import com.google.auto.value.AutoValue;
+
+      @AutoValue
+      public abstract class MyClass {
+        public abstract int getValue();
+
+        public static MyClass create(int value) {
+          return new AutoValue_MyClass(value);
+        }
+      }
+    """
+
+    GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileJava")
+            .withGradleVersion("4.6")
+            .build()
+  }
+
+  @Test
   public void testJavaCompilation_processorsFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'

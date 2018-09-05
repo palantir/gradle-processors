@@ -24,8 +24,14 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   void apply(Project project) {
 
-    project.configurations.create('processor')
+    def processorConf = project.configurations.create('processor')
     project.extensions.create('processors', ProcessorsExtension)
+
+    // compat with gradle 4.6 annotationProcessor
+    def annotationProcessor = project.configurations.findByName('annotationProcessor')
+    if (annotationProcessor != null) {
+      processorConf.extendsFrom(annotationProcessor)
+    }
 
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
