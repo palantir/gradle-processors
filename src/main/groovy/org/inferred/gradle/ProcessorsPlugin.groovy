@@ -30,28 +30,31 @@ class ProcessorsPlugin implements Plugin<Project> {
     /**** javac, groovy, etc. *********************************************************************/
     project.plugins.withType(JavaPlugin, { plugin ->
       def convention = project.convention.plugins['java'] as JavaPluginConvention
-      convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
       // compat with gradle 4.6 annotationProcessor
-      def annotationProcessor = project.configurations.findByName('annotationProcessor')
-      if (annotationProcessor != null) {
-        processorConf.extendsFrom(annotationProcessor)
-      }
-
-      project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
-        compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
-          doLast {
-            String path = getProcessors(project).getAsPath()
-            compileTask.options.compilerArgs += ["-processorpath", path]
-          }
-        })
-      }
-      project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
-        javadocTask.dependsOn project.task(GUtil.toLowerCamelCase('javadocProcessors ' + javadocTask.name), {
-          doLast {
-            Set<File> path = getProcessors(project).files
-            javadocTask.options.classpath += path
-          }
-        })
+      def annotationProcessorConf = project.configurations.findByName('annotationProcessor')
+      if (annotationProcessorConf != null) {
+        // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
+        // added to the 'processor' configuration
+        annotationProcessorConf.extendsFrom(processorConf)
+        convention.sourceSets.all { it.compileClasspath += annotationProcessorConf }
+      } else {
+        convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
+        project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
+          compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
+            doLast {
+              String path = getProcessors(project).getAsPath()
+              compileTask.options.compilerArgs += ["-processorpath", path]
+            }
+          })
+        }
+        project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
+          javadocTask.dependsOn project.task(GUtil.toLowerCamelCase('javadocProcessors ' + javadocTask.name), {
+            doLast {
+              Set<File> path = getProcessors(project).files
+              javadocTask.options.classpath += path
+            }
+          })
+        }
       }
     })
 
