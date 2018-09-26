@@ -20,24 +20,6 @@ dependencies {
 
 //// Tests ////////////////////////////////////////////////////////////////////////////
 
-// Write the plugin's classpath to a file to share with the tests
-task createClasspathManifest {
-  def outputDir = file("$buildDir/$name")
-
-  inputs.files sourceSets.main.runtimeClasspath
-  outputs.dir outputDir
-
-  doLast {
-    outputDir.mkdirs()
-    file("$outputDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
-  }
-}
-
-// Add the classpath file to the test runtime classpath
-dependencies {
-  testRuntime files(createClasspathManifest)
-}
-
 test {
   testLogging {
     exceptionFormat = 'full'
@@ -64,14 +46,16 @@ pluginBundle {
 }
 
 // Read publication secrets from environment
-task setupPublishProperties << {
-  def key = System.env.gradlePublishKey
-  if (key) {
-    System.properties.setProperty("gradle.publish.key", key)
-  }
-  def secret = System.env.gradlePublishSecret
-  if (secret) {
-    System.properties.setProperty("gradle.publish.secret", secret)
+task setupPublishProperties {
+  doLast {
+    def key = System.env.gradlePublishKey
+    if (key) {
+      System.properties.setProperty("gradle.publish.key", key)
+    }
+    def secret = System.env.gradlePublishSecret
+    if (secret) {
+      System.properties.setProperty("gradle.publish.secret", secret)
+    }
   }
 }
 tasks.publishPlugins.dependsOn tasks.setupPublishProperties
