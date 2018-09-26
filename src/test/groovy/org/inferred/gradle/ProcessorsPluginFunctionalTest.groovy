@@ -1,34 +1,12 @@
 package org.inferred.gradle
 
 import groovy.util.slurpersupport.NodeChild
-import org.gradle.testkit.runner.BuildResult
-import org.gradle.testkit.runner.GradleRunner
-import org.junit.Before
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
+import nebula.test.IntegrationSpec
+import spock.lang.Unroll
 
-import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
-import static org.hamcrest.CoreMatchers.containsString
-import static org.hamcrest.CoreMatchers.not
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertThat
-import static org.junit.Assert.assertTrue
+class ProcessorsPluginFunctionalTest extends IntegrationSpec {
 
-public class ProcessorsPluginFunctionalTest {
-
-  @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder()
-  private File buildFile
-
-  @Before
-  public void setup() throws IOException {
-    buildFile = testProjectDir.newFile("build.gradle")
-    writeBuildscript()
-  }
-
-  @Test
-  public void testJavaCompilation_javaFirst() throws IOException {
+  void testJavaCompilation_javaFirst() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
@@ -38,7 +16,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -51,14 +29,11 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("compileJava")
-        .build()
+    expect:
+    runTasksSuccessfully('compileJava')
   }
 
-  @Test
-  public void testAnnotationProcessor() throws IOException {
+  void testAnnotationProcessor() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
@@ -68,7 +43,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -81,15 +56,13 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileJava")
-            .withGradleVersion("4.6")
-            .build()
+    gradleVersion = "4.6"
+
+    expect:
+    runTasksSuccessfully("compileJava")
   }
 
-  @Test
-  public void testJavaCompilation_processorsFirst() throws IOException {
+  void testJavaCompilation_processorsFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'java'
@@ -99,7 +72,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -112,14 +85,12 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("compileJava")
-        .build()
+    expect:
+    runTasksSuccessfully("compileJava")
   }
 
-  @Test
-  public void testJavaTestCompilation() throws IOException {
+  @Unroll
+  void 'testJavaTestCompilation for gradle #gradleVersion'() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'java'
@@ -129,7 +100,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'test', 'java'), 'MyClass.java') << """
+    file('src/test/java/MyClass.java') << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -142,14 +113,14 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("compileTestJava")
-        .build()
+    expect:
+    runTasksSuccessfully("compileTestJava")
+
+    where:
+    gradleVersion << [null, "4.6"]
   }
 
-  @Test
-  public void testGroovyCompilationOfJavaFiles() throws IOException {
+  void testGroovyCompilationOfJavaFiles() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'groovy'
@@ -160,7 +131,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'groovy'), 'MyClass.java') << """
+    file('src/main/groovy/MyClass.java') << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -172,14 +143,11 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("compileGroovy")
-        .build()
+    expect:
+    runTasksSuccessfully("compileGroovy")
   }
 
-  @Test
-  public void testFindBugsIntegration() throws IOException {
+  void testFindBugsIntegration() throws IOException {
     // Version 2.0.21 of Immutables generates code that FindBugs takes exception to.
     // The antipatterns 1.0 plugin causes issues if it cannot find supertypes.
     buildFile << """
@@ -199,7 +167,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
       import org.immutables.value.Value;
 
@@ -212,18 +180,16 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("findbugsMain")
-        .build()
+    runTasksSuccessfully("findbugsMain")
 
     // Ensure no missing classes were reported
-    def report = new File(testProjectDir.root, 'build/reports/findbugs/main.xml').text
-    assertThat(report, not(containsString('<MissingClass>')))
+    def report = file('build/reports/findbugs/main.xml').text
+
+    expect:
+    !report.contains('<MissingClass>')
   }
 
-  @Test
-  public void testFindBugsIntegrationImmutablesEnclosing() throws IOException {
+  void testFindBugsIntegrationImmutablesEnclosing() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'findbugs'
@@ -241,7 +207,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
       import org.immutables.value.Value;
 
@@ -255,14 +221,11 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("findbugsMain")
-        .build()
+    expect:
+    runTasksSuccessfully("findbugsMain")
   }
 
-  @Test
-  public void testJacocoIntegration() throws IOException {
+  void testJacocoIntegration() throws IOException {
     buildFile << """
       repositories {
         maven {
@@ -286,7 +249,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -297,31 +260,29 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'test', 'java'), 'MyClassTest.java') << """
+    file('src/test/java/MyClassTest.java') << """
       import org.junit.Test;
 
       public class MyClassTest {
-         @Test
-         public void testBuilder() {
+                void testBuilder() {
             new MyClass.Builder();
          }        
       }
     """
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("test", "jacocoTestReport")
-            .build()
+    expect:
+    runTasksSuccessfully("test", "jacocoTestReport")
 
     // Ensure generated classes not included in JaCoCo report
-    def report = new File(testProjectDir.root, 'build/reports/jacoco/test/jacocoTestReport.xml').text
-    assertThat(report, not(containsString('name="Immutable')))
-    assertThat(report, not(containsString('covered="0"')))
+    def report = file('build/reports/jacoco/test/jacocoTestReport.xml').text
+
+    and:
+    !report.contains('name="Immutable')
+    !report.contains('covered="0"')
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/3 */
-  @Test
-  public void testProcessorJarsNotExported() throws IOException {
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/3">issue #3</a> */
+  void testProcessorJarsNotExported() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
@@ -331,7 +292,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -344,19 +305,16 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    String txt = GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("dependencies")
-        .build()
-        .getOutput()
+    def txt = runTasksSuccessfully("dependencies").standardOutput
     txt = txt.substring(txt.indexOf("runtime"))
     txt = txt.substring(txt.indexOf(System.lineSeparator()) + System.lineSeparator().length(),
             txt.indexOf(System.lineSeparator() + System.lineSeparator()))
-    assertEquals("No dependencies", txt)
+
+    expect:
+    "No dependencies" == txt
   }
 
-  @Test
-  public void testJavadoc() throws IOException {
+  void testJavadoc() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
@@ -370,7 +328,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import com.google.auto.value.AutoValue;
 
       @AutoValue
@@ -383,18 +341,12 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    StringWriter stdErr = new StringWriter()
-    BuildResult result = GradleRunner.create()
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("--info", "javadoc")
-        .forwardStdError(stdErr)
-        .build()
-    assertEquals(result.task(":javadoc").getOutcome(), SUCCESS)
-    assertTrue(stdErr.toString().readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty())
+    expect:
+    def stdErr = runTasksSuccessfully("--info", "javadoc").standardError
+    stdErr.readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty()
   }
 
-  @Test
-  public void testEclipseAptPrefs() throws IOException {
+  void testEclipseAptPrefs() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'eclipse'
@@ -405,7 +357,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -414,14 +366,9 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
+    runTasksSuccessfully("eclipseAptPrefs")
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("eclipseAptPrefs")
-            .build()
-
-    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
+    def prefsFile = file(".settings/org.eclipse.jdt.apt.core.prefs")
 
     def expected = """
       eclipse.preferences.version=1
@@ -429,11 +376,12 @@ public class ProcessorsPluginFunctionalTest {
       org.eclipse.jdt.apt.genSrcDir=generated${File.separator}java
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n','').stripIndent()
-    assertEquals(expected, prefsFile.text)
+
+    expect:
+    expected == prefsFile.text
   }
 
-  @Test
-  public void testEclipseAptPrefsUsesProcessorsExtension() throws IOException {
+  void testEclipseAptPrefsUsesProcessorsExtension() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'eclipse'
@@ -448,7 +396,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -457,26 +405,24 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
+    File
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("eclipseAptPrefs")
-            .build()
+    runTasksSuccessfully("eclipseAptPrefs")
 
-    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
+    def prefsFile = file(".settings/org.eclipse.jdt.apt.core.prefs")
 
     def expected = """
       eclipse.preferences.version=1
       org.eclipse.jdt.apt.aptEnabled=true
       org.eclipse.jdt.apt.genSrcDir=something
       org.eclipse.jdt.apt.reconcileEnabled=true
-    """.replaceFirst('\n','').stripIndent()
-    assertEquals(expected, prefsFile.text)
+    """.replaceFirst('\n', '').stripIndent()
+
+    expect:
+    expected == prefsFile.text
   }
 
-  @Test
-  public void testCleanEclipseAptPrefs() throws IOException {
+  void testCleanEclipseAptPrefs() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'eclipse'
@@ -487,24 +433,16 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
+    runTasksSuccessfully("eclipseAptPrefs")
+    runTasksSuccessfully("cleanEclipseAptPrefs")
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("eclipseAptPrefs")
-            .build()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("cleanEclipseAptPrefs")
-            .build()
+    def prefsFile = new File(projectDir, ".settings/org.eclipse.jdt.apt.core.prefs")
 
-    def prefsFile = new File(testProjectDirRoot, ".settings/org.eclipse.jdt.apt.core.prefs")
-
-    assertFalse(prefsFile.exists())
+    expect:
+    !prefsFile.exists()
   }
 
-  @Test
-  public void testExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
+  void testExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -515,7 +453,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -524,18 +462,14 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
     // create generated source directories
-    testProjectDir.newFolder('generated_src')
-    testProjectDir.newFolder('generated_testSrc')
+    directory('generated_src')
+    directory('generated_testSrc')
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("idea")
-            .build()
+    runTasksSuccessfully("idea")
 
     // get source directories from iml file
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.iml"))
     def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
     def sourceFolderUrls = sourceFolders.collect {
       ((NodeChild) it).attributes().get('url')
@@ -544,11 +478,11 @@ public class ProcessorsPluginFunctionalTest {
     def expected = ['file://$MODULE_DIR$/src/main/java',
                     'file://$MODULE_DIR$/generated_src',
                     'file://$MODULE_DIR$/generated_testSrc'].toSet()
-    assertEquals(expected, sourceFolderUrls.toSet())
+    expect:
+    expected == sourceFolderUrls.toSet()
   }
 
-  @Test
-  public void testNonExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
+  void testNonExistingGeneratedSourceDirectoriesAddedToIdeaIml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -559,7 +493,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -568,14 +502,10 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("idea")
-            .build()
+    runTasksSuccessfully("idea")
 
     // get source directories from iml file
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.iml"))
     def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
     def sourceFolderUrls = sourceFolders.collect {
       ((NodeChild) it).attributes().get('url')
@@ -584,11 +514,11 @@ public class ProcessorsPluginFunctionalTest {
     def expected = ['file://$MODULE_DIR$/src/main/java',
                     'file://$MODULE_DIR$/generated_src',
                     'file://$MODULE_DIR$/generated_testSrc'].toSet()
-    assertEquals(expected, sourceFolderUrls.toSet())
+    expect:
+    expected == sourceFolderUrls.toSet()
   }
 
-  @Test
-  public void testExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+  void testExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -604,7 +534,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -613,18 +543,14 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
     // create generated source directories
-    testProjectDir.newFolder('something')
-    testProjectDir.newFolder('something_else')
+    directory('something')
+    directory('something_else')
 
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("idea")
-            .build()
+    runTasksSuccessfully("idea")
 
     // get source directories from iml file
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.iml"))
     def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
     def sourceFolderUrls = sourceFolders.collect {
       ((NodeChild) it).attributes().get('url')
@@ -633,11 +559,11 @@ public class ProcessorsPluginFunctionalTest {
     def expected = ['file://$MODULE_DIR$/src/main/java',
                     'file://$MODULE_DIR$/something',
                     'file://$MODULE_DIR$/something_else'].toSet()
-    assertEquals(expected, sourceFolderUrls.toSet())
+    expect:
+    expected == sourceFolderUrls.toSet()
   }
 
-  @Test
-  public void testNonExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
+  void testNonExistingDirectoriesAddedLazilyToIdeaIml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -653,7 +579,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('src', 'main', 'java'), 'MyClass.java') << """
+    file("src/main/java/MyClass.java") << """
       import org.immutables.value.Value;
 
       @Value.Immutable
@@ -662,14 +588,10 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("idea")
-            .build()
+    runTasksSuccessfully("idea")
 
     // get source directories from iml file
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.iml").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.iml"))
     def sourceFolders = xml.depthFirst().findAll { it.name() == "sourceFolder" }
     def sourceFolderUrls = sourceFolders.collect {
       ((NodeChild) it).attributes().get('url')
@@ -678,18 +600,18 @@ public class ProcessorsPluginFunctionalTest {
     def expected = ['file://$MODULE_DIR$/src/main/java',
                     'file://$MODULE_DIR$/something',
                     'file://$MODULE_DIR$/something_else'].toSet()
-    assertEquals(expected, sourceFolderUrls.toSet())
+    expect:
+    expected == sourceFolderUrls.toSet()
   }
 
-  @Test
-  public void testAnnotationProcessingInIdeaCompilerXml() throws IOException {
+  void testAnnotationProcessingInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
       apply plugin: 'org.inferred.processors'
     """
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -698,13 +620,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -721,11 +639,11 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
-  @Test
-  public void testCompilerXmlNotTouchedIfIdeaNotActive() throws IOException {
+  void testCompilerXmlNotTouchedIfIdeaNotActive() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -741,28 +659,24 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << expected
+    file('.idea/compiler.xml') << expected
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("--stacktrace")
-            .build()
+    runTasks("--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
-  @Test
-  public void testNoAnnotationProcessingInIdeaCompilerXml() throws IOException {
+  void testNoAnnotationProcessingInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
       apply plugin: 'org.inferred.processors'
     """
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -770,13 +684,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -793,11 +703,11 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
-  @Test
-  public void testUserSpecifiedDirectoriesUsedInIdeaIprFile() throws IOException {
+  void testUserSpecifiedDirectoriesUsedInIdeaIprFile() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -809,21 +719,17 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("idea", "--stacktrace")
-            .build()
+    runTasksSuccessfully("idea", "--stacktrace")
 
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.ipr").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
     def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
-    assertEquals(profile.sourceOutputDir.first().@name, "foo")
-    assertEquals(profile.sourceTestOutputDir.first().@name, "bar")
+    expect:
+    profile.sourceOutputDir.first().@name == "foo"
+    profile.sourceTestOutputDir.first().@name == "bar"
   }
 
-  @Test
-  public void testUserSpecifiedDirectoriesUsedInIdeaCompilerXml() throws IOException {
+  void testUserSpecifiedDirectoriesUsedInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'idea'
@@ -835,7 +741,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -844,13 +750,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -867,32 +769,20 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
-  @Test
-  public void testOnlyApplyToSubProject() {
-    testProjectDir.newFolder("projectA")
-    testProjectDir.newFolder("projectB")
-
-    File projectABuildFile = testProjectDir.newFile("projectA/build.gradle")
-    File projectBBuildFile = testProjectDir.newFile("projectB/build.gradle")
-    File settingsFile = testProjectDir.newFile("settings.gradle")
-
+  void testOnlyApplyToSubProject() {
     buildFile << """
       apply plugin: 'idea'
     """
 
-    settingsFile << """
-      include 'projectA'
-      include 'projectB'
-    """
-
-    projectABuildFile << """
+    addSubproject("projectA", """
       apply plugin: 'java'
-    """
+    """)
 
-    projectBBuildFile << """
+    addSubproject("projectB", """
       apply plugin: 'java'
       apply plugin: 'idea'
       apply plugin: 'org.inferred.processors'
@@ -900,23 +790,20 @@ public class ProcessorsPluginFunctionalTest {
       dependencies {
         processor 'org.immutables:value:2.0.21'
       }
-    """
+    """)
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-        .withProjectDir(testProjectDirRoot)
-        .withArguments("idea", "--stacktrace")
-        .build()
+    runTasksSuccessfully("idea", "--stacktrace")
 
-    def xml = new XmlSlurper().parse(testProjectDirRoot.toPath().resolve("${testProjectDirRoot.name}.ipr").toFile())
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
     def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
-    assertEquals(profile.sourceOutputDir.first().@name, "generated_src")
+
+    expect:
+    profile.sourceOutputDir.first().@name == "generated_src"
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/12 */
-  @Test
-  public void testEclipseClasspathModified_javaPluginFirst() throws IOException {
+  void testEclipseClasspathModified_javaPluginFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'java'
@@ -927,18 +814,14 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner runner = GradleRunner.create()
-    runner
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("eclipse")
-        .build()
-    assertAutoValueInFile(new File(runner.projectDir, ".classpath"))
-    assertAutoValueInFile(new File(runner.projectDir, ".factorypath"))
+    expect:
+    runTasksSuccessfully("eclipse")
+    assertAutoValueInFile(file(".classpath"))
+    assertAutoValueInFile(file(".factorypath"))
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/12 */
-  @Test
-  public void testEclipseClasspathModified_eclipsePluginFirst() throws IOException {
+  void testEclipseClasspathModified_eclipsePluginFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'eclipse'
@@ -949,24 +832,20 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    GradleRunner runner = GradleRunner.create()
-    runner
-        .withProjectDir(testProjectDir.getRoot())
-        .withArguments("eclipse")
-        .build()
-    assertAutoValueInFile(new File(runner.projectDir, ".classpath"))
-    assertAutoValueInFile(new File(runner.projectDir, ".factorypath"))
+    expect:
+    runTasksSuccessfully("eclipse")
+    assertAutoValueInFile(file(".classpath"))
+    assertAutoValueInFile(file(".factorypath"))
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/28 */
-  @Test
-  public void testIdeaCompilerConfigurationUpdatedWithoutNeedToApplyIdeaPlugin() throws IOException {
+  void testIdeaCompilerConfigurationUpdatedWithoutNeedToApplyIdeaPlugin() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
     """
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -975,13 +854,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -998,12 +873,12 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/53 */
-  @Test
-  public void testCompilerXmlModificationWhenIdeaPluginImportedLast() throws IOException {
+  void testCompilerXmlModificationWhenIdeaPluginImportedLast() throws IOException {
     buildFile << """
       apply plugin: 'java'
       apply plugin: 'org.inferred.processors'
@@ -1015,7 +890,7 @@ public class ProcessorsPluginFunctionalTest {
       }
     """
 
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -1024,13 +899,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -1047,27 +918,19 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
   /** @see https://github.com/palantir/gradle-processors/issues/53 */
-  @Test
-  public void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
-    buildFile << """
-      project(':A') {
+  void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
+    addSubproject("A", """
         apply plugin: 'java'
         apply plugin: 'idea'
         apply plugin: 'org.inferred.processors'
-      }
-    """
+    """.stripIndent())
 
-    testProjectDir.newFolder('A')
-
-    new File(testProjectDir.getRoot(), 'settings.gradle') << """
-      include "A"
-    """.stripIndent().trim()
-
-    new File(testProjectDir.newFolder('.idea'), 'compiler.xml') << """
+    file('.idea/compiler.xml') << """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
@@ -1076,13 +939,9 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.trim()
 
-    File testProjectDirRoot = testProjectDir.getRoot()
-    GradleRunner.create()
-            .withProjectDir(testProjectDirRoot)
-            .withArguments("-Didea.active=true", "--stacktrace")
-            .build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
-    def xml = testProjectDirRoot.toPath().resolve(".idea/compiler.xml").toFile().text.trim()
+    def xml = file(".idea/compiler.xml").text.trim()
 
     def expected = """
       <project version="4">
@@ -1099,7 +958,8 @@ public class ProcessorsPluginFunctionalTest {
       </project>
     """.stripIndent().trim()
 
-    assertEquals(expected, xml)
+    expect:
+    expected == xml
   }
 
   private void assertAutoValueInFile(File file) {
@@ -1112,30 +972,4 @@ public class ProcessorsPluginFunctionalTest {
     }
   }
 
-  private void writeBuildscript() {
-    def pluginClasspathResource = getClass().classLoader.findResource("plugin-classpath.txt")
-    if (pluginClasspathResource == null) {
-      throw new IllegalStateException("Did not find plugin classpath resource, run `testClasses` build task.")
-    }
-
-    def pluginClasspath = pluginClasspathResource.readLines()
-        .collect { it.replace('\\', '\\\\') } // escape backslashes in Windows paths
-        .collect { "'$it'" }
-        .join(", ")
-
-    buildFile << """
-      buildscript {
-        dependencies {
-          classpath files($pluginClasspath)
-        }
-      }
-
-      repositories {
-        mavenCentral()
-        maven {
-          url "https://repository-achartengine.forge.cloudbees.com/snapshot/"
-        }
-      }
-    """
-  }
 }
