@@ -51,7 +51,10 @@ class ProcessorsPlugin implements Plugin<Project> {
     if (annotationProcessorConf != null) {
       // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
       // added to the 'processor' configuration
-      annotationProcessorConf.extendsFrom(ourProcessorConf)
+      def convention = project.convention.plugins['java'] as JavaPluginConvention
+      convention.sourceSets.all {
+        configurations[it.annotationProcessorConfigurationName].extendsFrom ourProcessorConf
+      }
       return annotationProcessorConf
     } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
