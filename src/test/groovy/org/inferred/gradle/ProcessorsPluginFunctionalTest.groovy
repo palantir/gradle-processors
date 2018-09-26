@@ -812,7 +812,7 @@ class ProcessorsPluginFunctionalTest extends IntegrationSpec {
     profile.sourceOutputDir.first().@name == "generated_src"
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/12 */
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/12">issue #12</a> */
   void testEclipseClasspathModified_javaPluginFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
@@ -830,7 +830,7 @@ class ProcessorsPluginFunctionalTest extends IntegrationSpec {
     assertAutoValueInFile(file(".factorypath"))
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/12 */
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/12">issue #12</a> */
   void testEclipseClasspathModified_eclipsePluginFirst() throws IOException {
     buildFile << """
       apply plugin: 'org.inferred.processors'
