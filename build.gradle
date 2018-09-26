@@ -14,10 +14,8 @@ repositories {
 sourceCompatibility = '1.7'
 
 dependencies {
-  compile localGroovy()
-  compile gradleApi()
   compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
-  testCompile gradleTestKit()
+  testCompile 'com.netflix.nebula:nebula-test:6.7.0'
 }
 
 //// Tests ////////////////////////////////////////////////////////////////////////////
