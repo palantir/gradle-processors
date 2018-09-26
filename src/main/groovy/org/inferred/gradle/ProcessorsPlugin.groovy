@@ -71,6 +71,51 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
+  private void configureEclipsePlugin(Project project, Configuration processorConf) {
+    project.plugins.withType(EclipsePlugin, { plugin ->
+      project.eclipse {
+        extensions.create('processors', EclipseProcessorsExtension)
+        processors.conventionMapping.outputDir = {
+          project.file('generated/java')
+        }
+
+        classpath.plusConfigurations += [processorConf]
+        if (jdt != null) {
+          jdt.file.withProperties {
+            it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
+          }
+        }
+      }
+
+      templateTask(
+              project,
+              'eclipseAptPrefs',
+              'org/inferred/gradle/apt-prefs.template',
+              '.settings/org.eclipse.jdt.apt.core.prefs',
+              {
+                [
+                        outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
+                        deps     : processorConf
+                ]
+              }
+      )
+      project.tasks.eclipseAptPrefs.inputs.file processorConf
+      project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
+      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
+
+      templateTask(
+              project,
+              'eclipseFactoryPath',
+              'org/inferred/gradle/factorypath.template',
+              '.factorypath',
+              { [deps: processorConf] }
+      )
+      project.tasks.eclipseFactoryPath.inputs.file processorConf
+      project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
+      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
+    })
+  }
+
   private void configureIdeaPlugin(Project project, Configuration processorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
       if (project == project.rootProject) {
@@ -161,51 +206,6 @@ class ProcessorsPlugin implements Plugin<Project> {
           findBugsTask.classpath += project.files(generatedClassesJar)
         }
       }
-    })
-  }
-
-  private void configureEclipsePlugin(Project project, Configuration processorConf) {
-    project.plugins.withType(EclipsePlugin, { plugin ->
-      project.eclipse {
-        extensions.create('processors', EclipseProcessorsExtension)
-        processors.conventionMapping.outputDir = {
-          project.file('generated/java')
-        }
-
-        classpath.plusConfigurations += [processorConf]
-        if (jdt != null) {
-          jdt.file.withProperties {
-            it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
-          }
-        }
-      }
-
-      templateTask(
-          project,
-          'eclipseAptPrefs',
-          'org/inferred/gradle/apt-prefs.template',
-          '.settings/org.eclipse.jdt.apt.core.prefs',
-          {
-            [
-                outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
-                deps     : processorConf
-            ]
-          }
-      )
-      project.tasks.eclipseAptPrefs.inputs.file processorConf
-      project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
-      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
-
-      templateTask(
-              project,
-              'eclipseFactoryPath',
-              'org/inferred/gradle/factorypath.template',
-              '.factorypath',
-              { [deps: processorConf] }
-      )
-      project.tasks.eclipseFactoryPath.inputs.file processorConf
-      project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
-      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
     })
   }
 
