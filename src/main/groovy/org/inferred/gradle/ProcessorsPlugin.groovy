@@ -144,6 +144,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       //   the gradle-processors plugin to the root project. Instead, we update it from every
       //   project idempotently.
       def inIntelliJ = System.properties.'idea.active' as boolean
+      println "Hey inIntelliJ is : $inIntelliJ"
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
       if (inIntelliJ && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)

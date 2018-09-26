@@ -671,7 +671,7 @@ class ProcessorsPluginFunctionalTest extends IntegrationSpec {
 
     file('.idea/compiler.xml') << expected
 
-    runTasks("--stacktrace")
+    println runTasksSuccessfully("--stacktrace", "--info").standardOutput
 
     def xml = file(".idea/compiler.xml").text.trim()
 
