@@ -2,12 +2,14 @@ package org.inferred.gradle
 
 
 import groovy.text.SimpleTemplateEngine
+import java.util.function.Supplier
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
+import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.quality.FindBugs
@@ -30,11 +32,12 @@ class ProcessorsPlugin implements Plugin<Project> {
       def convention = project.convention.plugins['java'] as JavaPluginConvention
       convention.sourceSets.all { it.compileClasspath += processorConf }
 
-      configureEclipsePlugin(project, processorConf)
       configureIdeaPlugin(project, processorConf)
       configureFindBugs(project)
       configureJacoco(project)
     })
+    // Eclipse is a special snowflake because of nested on-plugin-application initializers
+    configureEclipsePlugin(project, { project.configurations.findByName('annotationProcessor') ?: project.configurations.processor })
   }
 
 
@@ -71,49 +74,64 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  private void configureEclipsePlugin(Project project, Configuration processorConf) {
-    project.plugins.withType(EclipsePlugin, { plugin ->
-      project.eclipse {
-        extensions.create('processors', EclipseProcessorsExtension)
-        processors.conventionMapping.outputDir = {
-          project.file('generated/java')
-        }
+  private void configureEclipsePlugin(Project project, Supplier<Configuration> processorConfSupplier) {
+    project.plugins.withType(EclipsePlugin) {
+      // JavaBasePlugin & JavaPlugin again are necessary as EclipsePlugin wires up classpath configuration after
+      // JavaPlugin and we need to be applied after that.
+      project.plugins.withType(JavaBasePlugin) {
+        project.plugins.withType(JavaPlugin) {
+          // Now get the conf
+          def processorConf = processorConfSupplier.get()
 
-        classpath.plusConfigurations += [processorConf]
-        if (jdt != null) {
-          jdt.file.withProperties {
-            it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
+          project.eclipse {
+            extensions.create('processors', EclipseProcessorsExtension)
+            processors.conventionMapping.outputDir = {
+              project.file('generated/java')
+            }
+
+            // If this is empty, then it means EclipsePlugin didn't initialize it yet
+            if (classpath.plusConfigurations.empty) {
+              project.logger.error(
+                      "EclipseClasspath::plusConfigurations should not be empty, this indicates that EclipsePlugin "
+                              + "didn't initialize it by the time we tried to mutate it")
+            }
+            classpath.plusConfigurations += [processorConf]
+            if (jdt != null) {
+              jdt.file.withProperties {
+                it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
+              }
+            }
           }
+
+          templateTask(
+                  project,
+                  'eclipseAptPrefs',
+                  'org/inferred/gradle/apt-prefs.template',
+                  '.settings/org.eclipse.jdt.apt.core.prefs',
+                  {
+                    [
+                            outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
+                            deps     : processorConf
+                    ]
+                  }
+          )
+          project.tasks.eclipseAptPrefs.inputs.files processorConf
+          project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
+          project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
+
+          templateTask(
+                  project,
+                  'eclipseFactoryPath',
+                  'org/inferred/gradle/factorypath.template',
+                  '.factorypath',
+                  { [deps: processorConf] }
+          )
+          project.tasks.eclipseFactoryPath.inputs.files processorConf
+          project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
+          project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
         }
       }
-
-      templateTask(
-              project,
-              'eclipseAptPrefs',
-              'org/inferred/gradle/apt-prefs.template',
-              '.settings/org.eclipse.jdt.apt.core.prefs',
-              {
-                [
-                        outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
-                        deps     : processorConf
-                ]
-              }
-      )
-      project.tasks.eclipseAptPrefs.inputs.file processorConf
-      project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
-      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
-
-      templateTask(
-              project,
-              'eclipseFactoryPath',
-              'org/inferred/gradle/factorypath.template',
-              '.factorypath',
-              { [deps: processorConf] }
-      )
-      project.tasks.eclipseFactoryPath.inputs.file processorConf
-      project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
-      project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
-    })
+    }
   }
 
   private void configureIdeaPlugin(Project project, Configuration processorConf) {
