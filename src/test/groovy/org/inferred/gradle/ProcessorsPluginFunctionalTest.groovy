@@ -6,6 +6,16 @@ import spock.lang.Unroll
 
 class ProcessorsPluginFunctionalTest extends IntegrationSpec {
 
+  void setup() {
+    buildFile << """
+      allprojects {
+        repositories {
+          mavenCentral()
+        }
+      }
+    """.stripIndent()
+  }
+
   void testJavaCompilation_javaFirst() throws IOException {
     buildFile << """
       apply plugin: 'java'
