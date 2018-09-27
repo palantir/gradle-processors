@@ -317,7 +317,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       }
     """
 
-    def txt = runTasksSuccessfully("dependencies").standardOutput
+    def txt = runTasksSuccessfully("dependencies").output
     txt = txt.substring(txt.indexOf("runtime"))
     txt = txt.substring(txt.indexOf(System.lineSeparator()) + System.lineSeparator().length(),
             txt.indexOf(System.lineSeparator() + System.lineSeparator()))
@@ -354,7 +354,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     """
 
     expect:
-    def stdErr = runTasksSuccessfully("--info", "javadoc").standardError
+    def stdErr = runTasksSuccessfully("--info", "javadoc").output
     stdErr.readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty()
   }
 
