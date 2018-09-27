@@ -7,6 +7,9 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
   def setup() {
     buildFile << """
+      plugins {
+        id 'org.inferred.processors' apply false
+      }
       allprojects {
         repositories {
           mavenCentral()
