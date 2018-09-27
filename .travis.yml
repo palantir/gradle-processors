@@ -4,9 +4,6 @@ env:
   global:
     secure: CpcLbDc7hxsaLkAoZUwyxREUCEkrK8KAStoKvAKiFjyOMjIYBfSMkZVuT1b6XlqOeLrfzC0Ve7gP6SDArvtIpPMHU6iHLSlGgUTk40q9VWt3Qf+uGkzGud7jvzlcGlm2tY4KN/fUpZBTz6Np6tufRJt5bdaCdG2PlhPi3Vsc85Z/h87+dZ1Dpd9Ey8rODnBF63Rs4EsvNmA2ZFmbvisebECJoiQFNaxgD4Jer6FRmD0+4NXJymqvJ1ulMhLvm9bttGeccXv+DXSNpbgp7nQxH/XdYLLRwJmY+SnYJgsvk7Pr/jd57489g55J2H4+VjBsyDTCkuyvu3c41Wo27Ne19XTsQbgAi/oSCFCsoqbDk/m9bZ6i0Bo1uf84jTLAiYlikJyi4Lcn0rbvXciPWGIWm3FzxKGUgK8tEtD41Ht45xIvXBvYP2rNorAG0zJva5iyBSqetqRgG35SBsotaKUZkvZby5adoZugW8CVZfXgfh6PejgiFLRrEINgTHLehKiF4VGwcXq/gyJdvE5Gx/EceuxZXCpE7iAds/dSd6CcTG9UHUN1cRvDWABYI42zWWVRyRf8shh74edLo93a1t7gc4BdOdcOKCd/ZEcQLIG/SQ9QGClmHfVUNG0+DUqlccrDaeJqeFqZzdNyZd+0lhrZGC8xEPI+5r4uB8iLPItaWE8=
 
-script:
-  - ./gradlew build --scan -s --info
-
 deploy:
   provider: script
   script: ./gradlew clean publishPlugins
