@@ -19,6 +19,17 @@ dependencies {
   testCompile 'com.netflix.nebula:nebula-test:7.0.0'
 }
 
+gradlePlugin {
+  automatedPublishing = false
+
+  plugins {
+    processors {
+      id = 'org.inferred.processors'
+      implementationClass = 'org.inferred.gradle.ProcessorsPlugin'
+    }
+  }
+}
+
 //// Tests ////////////////////////////////////////////////////////////////////////////
 
 test {
