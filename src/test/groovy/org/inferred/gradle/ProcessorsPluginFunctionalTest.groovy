@@ -670,7 +670,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     file('.idea/compiler.xml') << expected
 
-    runTasks("--stacktrace")
+    runTasksSuccessfully("--stacktrace")
 
     def xml = file(".idea/compiler.xml").text.trim()
 
@@ -787,11 +787,11 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       apply plugin: 'idea'
     """
 
-    addSubproject("projectA", """
+    multiProject.addSubproject("projectA", """
       apply plugin: 'java'
     """)
 
-    addSubproject("projectB", """
+    multiProject.addSubproject("projectB", """
       apply plugin: 'java'
       apply plugin: 'idea'
       apply plugin: 'org.inferred.processors'
@@ -933,7 +933,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
   /** See <a href="https://github.com/palantir/gradle-processors/issues/53">issue #53</a> */
   void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
-    addSubproject("A", """
+    multiProject.addSubproject("A", """
         apply plugin: 'java'
         apply plugin: 'idea'
         apply plugin: 'org.inferred.processors'
