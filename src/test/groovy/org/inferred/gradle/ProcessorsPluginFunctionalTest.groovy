@@ -847,7 +847,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     assertAutoValueInFile(file(".factorypath"))
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/28 */
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/28">issue #28</a> */
   void testIdeaCompilerConfigurationUpdatedWithoutNeedToApplyIdeaPlugin() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -886,7 +886,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expected == xml
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/53 */
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/53">issue #53</a> */
   void testCompilerXmlModificationWhenIdeaPluginImportedLast() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -931,7 +931,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expected == xml
   }
 
-  /** @see https://github.com/palantir/gradle-processors/issues/53 */
+  /** See <a href="https://github.com/palantir/gradle-processors/issues/53">issue #53</a> */
   void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
     addSubproject("A", """
         apply plugin: 'java'
