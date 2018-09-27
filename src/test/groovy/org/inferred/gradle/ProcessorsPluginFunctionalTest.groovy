@@ -7,6 +7,7 @@ import spock.lang.Unroll
 class ProcessorsPluginFunctionalTest extends IntegrationSpec {
 
   void setup() {
+    // Fork tests since we're changing system properties
     fork = true
     buildFile << """
       allprojects {
