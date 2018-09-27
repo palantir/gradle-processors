@@ -1,14 +1,11 @@
 package org.inferred.gradle
 
 import groovy.util.slurpersupport.NodeChild
-import nebula.test.IntegrationSpec
 import spock.lang.Unroll
 
-class ProcessorsPluginFunctionalTest extends IntegrationSpec {
+class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
-  void setup() {
-    // Fork tests since we're changing system properties
-    fork = true
+  def setup() {
     buildFile << """
       allprojects {
         repositories {
