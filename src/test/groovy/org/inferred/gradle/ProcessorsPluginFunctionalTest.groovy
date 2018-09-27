@@ -7,6 +7,7 @@ import spock.lang.Unroll
 class ProcessorsPluginFunctionalTest extends IntegrationSpec {
 
   void setup() {
+    fork = true
     buildFile << """
       allprojects {
         repositories {
