@@ -22,6 +22,7 @@ class AbstractPluginTest extends Specification {
   File settingsFile
   MultiProjectIntegrationHelper multiProject
   File projectDir
+  String gradleVersion
 
   def setup() {
     projectDir = folder.getRoot()
@@ -32,10 +33,14 @@ class AbstractPluginTest extends Specification {
   }
 
   GradleRunner with(String... tasks) {
-    return GradleRunner.create()
-        .withProjectDir(projectDir)
-        .withArguments(tasks)
-        .withPluginClasspath()
+    def runner = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withArguments(tasks)
+            .withPluginClasspath()
+    if (gradleVersion != null) {
+      runner.withGradleVersion(gradleVersion)
+    }
+    return runner
   }
 
   String exec(String task) {
