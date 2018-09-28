@@ -356,9 +356,11 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       }
     """
 
+    def stderr = new StringWriter()
+
     expect:
-    def stdErr = runTasksSuccessfully("--info", "javadoc").output
-    stdErr.readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty()
+    def stdErr = with("--info", "javadoc").forwardStdError(stderr).build()
+    stdErr.output.readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty()
   }
 
   void testEclipseAptPrefs() throws IOException {
