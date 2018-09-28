@@ -359,7 +359,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     def stderr = new StringWriter()
 
     expect:
-    def stdErr = with("--info", "javadoc").forwardStdError(stderr).build()
+    with("--info", "javadoc").forwardStdError(stderr).build()
     stdErr.output.readLines().grep { !it.contains("_JAVA_OPTIONS") }.isEmpty()
   }
 
