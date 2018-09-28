@@ -1,6 +1,7 @@
 package org.inferred.gradle
 
 import groovy.util.slurpersupport.NodeChild
+import org.gradle.testkit.runner.TaskOutcome
 import spock.lang.Unroll
 
 class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
@@ -276,14 +277,16 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       import org.junit.Test;
 
       public class MyClassTest {
-                void testBuilder() {
+         @Test
+         public void testBuilder() {
             new MyClass.Builder();
          }        
       }
     """
 
     expect:
-    runTasksSuccessfully("test", "jacocoTestReport")
+    def result = runTasksSuccessfully("test", "jacocoTestReport", "--info", "-s")
+    result.task(':jacocoTestReport').outcome == TaskOutcome.SUCCESS
 
     // Ensure generated classes not included in JaCoCo report
     def report = file('build/reports/jacoco/test/jacocoTestReport.xml').text
