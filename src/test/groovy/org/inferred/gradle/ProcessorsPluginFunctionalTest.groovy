@@ -422,8 +422,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       }
     """
 
-    File
-
     runTasksSuccessfully("eclipseAptPrefs")
 
     def prefsFile = file(".settings/org.eclipse.jdt.apt.core.prefs")
