@@ -21,6 +21,8 @@ dependencies {
   testRuntime files(tasks.pluginUnderTestMetadata)
 }
 
+tasks.idea.dependsOn 'pluginUnderTestMetadata'
+
 gradlePlugin {
   automatedPublishing = false
 
