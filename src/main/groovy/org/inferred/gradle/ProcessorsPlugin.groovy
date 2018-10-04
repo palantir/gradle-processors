@@ -1,8 +1,6 @@
 package org.inferred.gradle
 
-
 import groovy.text.SimpleTemplateEngine
-import java.util.function.Supplier
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -23,39 +21,63 @@ import org.gradle.util.GUtil
 
 class ProcessorsPlugin implements Plugin<Project> {
 
+  /** The sink configuration that collects all processors, whether defined in the various
+   * {@link org.gradle.api.tasks.SourceSet#getAnnotationProcessorConfigurationName()} (gradle 4.6+) or directly in
+   * our
+   */
+  private static final String ALL_PROCESSORS_CONFIGURATION = 'allProcessors'
+
   void apply(Project project) {
 
     project.extensions.create('processors', ProcessorsExtension)
 
-    project.plugins.withType(JavaPlugin, { plugin ->
-      def processorConf = configureJavaCompilerTasks(project)
-      def convention = project.convention.plugins['java'] as JavaPluginConvention
-      convention.sourceSets.all { it.compileClasspath += processorConf }
+    def ourProcessorConf = project.configurations.create('processor') {
+      visible = false
+      description = "The only configuration where processors should be added by the user."
+    }
+    def allProcessorsConf = project.configurations.create(ALL_PROCESSORS_CONFIGURATION) {
+      extendsFrom ourProcessorConf
+      visible = false
+      description = "The sink configuration that collects all processors, whether defined in a SourceSet's custom " +
+              "annotationProcessor configuration (gradle 4.6+) or directly in the processor configuration exposed " +
+              "by this plugin."
+    }
 
-      configureIdeaPlugin(project, processorConf)
+    project.plugins.withType(JavaPlugin, { plugin ->
+      configureJavaCompilerTasks(project, ourProcessorConf, allProcessorsConf)
+      def convention = project.convention.plugins['java'] as JavaPluginConvention
+      // Current behaviour is to add 'processors' to the compile classpath.
+      // Note that we don't add `allProcessorsConf` because that can include processors which came only from
+      // source-set-specific configurations (gradle 4.6+).
+      convention.sourceSets.all { it.compileClasspath += ourProcessorConf }
+
+      configureIdeaPlugin(project, allProcessorsConf)
       configureFindBugs(project)
       configureJacoco(project)
     })
     // Eclipse is a special snowflake because of nested on-plugin-application initializers
-    configureEclipsePlugin(project, { project.configurations.findByName('annotationProcessor') ?: project.configurations.processor })
+    configureEclipsePlugin(project, allProcessorsConf)
   }
 
 
   /**
-   * Configures javac, groovy, etc. returning the used processors configuration.
+   * Configures javac, groovy, etc., such that processors from {@code ourProcessorsConf} are picked up, and all
+   * processors coming from there as well as Gradle 4.6+ {@link org.gradle.api.tasks.SourceSet#getAnnotationProcessorConfigurationName()
+   * source set annotation processor configurations} will be included in {@code allProcessorsConf}.
    */
-  private Configuration configureJavaCompilerTasks(Project project) {
-    def ourProcessorConf = project.configurations.create('processor')
+  private void configureJavaCompilerTasks(
+          Project project, Configuration ourProcessorsConf, Configuration allProcessorsConf) {
     // compat with gradle 4.6 annotationProcessor
-    def annotationProcessorConf = project.configurations.findByName('annotationProcessor')
-    if (annotationProcessorConf != null) {
+    // The configuration is guaranteed to exist (for the 'main' sourceSet) if the java plugin was applied
+    if (project.configurations.findByName('annotationProcessor') != null) {
+      def convention = project.convention.plugins['java'] as JavaPluginConvention
       // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
       // added to the 'processor' configuration
-      def convention = project.convention.plugins['java'] as JavaPluginConvention
       convention.sourceSets.all {
-        configurations[it.annotationProcessorConfigurationName].extendsFrom ourProcessorConf
+        def annotationProcessorConf = configurations[it.annotationProcessorConfigurationName]
+        annotationProcessorConf.extendsFrom ourProcessorsConf
+        allProcessorsConf.extendsFrom annotationProcessorConf
       }
-      return annotationProcessorConf
     } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
         compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
@@ -73,19 +95,15 @@ class ProcessorsPlugin implements Plugin<Project> {
           }
         })
       }
-      return ourProcessorConf
     }
   }
 
-  private void configureEclipsePlugin(Project project, Supplier<Configuration> processorConfSupplier) {
+  private void configureEclipsePlugin(Project project, Configuration processorConf) {
     project.plugins.withType(EclipsePlugin) {
       // JavaBasePlugin & JavaPlugin again are necessary as EclipsePlugin wires up classpath configuration after
       // JavaPlugin and we need to be applied after that.
       project.plugins.withType(JavaBasePlugin) {
         project.plugins.withType(JavaPlugin) {
-          // Now get the conf
-          def processorConf = processorConfSupplier.get()
-
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
             processors.conventionMapping.outputDir = {
