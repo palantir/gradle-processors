@@ -14,31 +14,27 @@ repositories {
 sourceCompatibility = '1.7'
 
 dependencies {
-  compile localGroovy()
-  compile gradleApi()
   compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
   testCompile gradleTestKit()
+  testCompile 'com.netflix.nebula:nebula-test:7.0.0'
+  // So we can run tests directly from IntelliJ
+  testRuntime files(tasks.pluginUnderTestMetadata)
 }
 
-//// Tests ////////////////////////////////////////////////////////////////////////////
+tasks.idea.dependsOn 'pluginUnderTestMetadata'
 
-// Write the plugin's classpath to a file to share with the tests
-task createClasspathManifest {
-  def outputDir = file("$buildDir/$name")
+gradlePlugin {
+  automatedPublishing = false
 
-  inputs.files sourceSets.main.runtimeClasspath
-  outputs.dir outputDir
-
-  doLast {
-    outputDir.mkdirs()
-    file("$outputDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+  plugins {
+    processors {
+      id = 'org.inferred.processors'
+      implementationClass = 'org.inferred.gradle.ProcessorsPlugin'
+    }
   }
 }
 
-// Add the classpath file to the test runtime classpath
-dependencies {
-  testRuntime files(createClasspathManifest)
-}
+//// Tests ////////////////////////////////////////////////////////////////////////////
 
 test {
   testLogging {
@@ -66,14 +62,16 @@ pluginBundle {
 }
 
 // Read publication secrets from environment
-task setupPublishProperties << {
-  def key = System.env.gradlePublishKey
-  if (key) {
-    System.properties.setProperty("gradle.publish.key", key)
-  }
-  def secret = System.env.gradlePublishSecret
-  if (secret) {
-    System.properties.setProperty("gradle.publish.secret", secret)
+task setupPublishProperties {
+  doLast {
+    def key = System.env.gradlePublishKey
+    if (key) {
+      System.properties.setProperty("gradle.publish.key", key)
+    }
+    def secret = System.env.gradlePublishSecret
+    if (secret) {
+      System.properties.setProperty("gradle.publish.secret", secret)
+    }
   }
 }
 tasks.publishPlugins.dependsOn tasks.setupPublishProperties
