@@ -22,21 +22,16 @@ import org.gradle.util.GUtil
 
 class ProcessorsPlugin implements Plugin<Project> {
 
-  /** The sink configuration that collects all processors, whether defined in the various
-   * {@link org.gradle.api.tasks.SourceSet#getAnnotationProcessorConfigurationName()} (gradle 4.6+) or directly in
-   * our
-   */
-  private static final String ALL_PROCESSORS_CONFIGURATION = 'allProcessors'
-
   void apply(Project project) {
 
     project.extensions.create('processors', ProcessorsExtension)
 
     def ourProcessorConf = project.configurations.create('processor') {
       visible = false
-      description = "The only configuration where processors should be added by the user."
+      description = "The only configuration where processors should be added by the user. These are also added to " +
+              "the 'compileOnly' configuration of every sourceSet."
     }
-    def allProcessorsConf = project.configurations.create(ALL_PROCESSORS_CONFIGURATION) {
+    def allProcessorsConf = project.configurations.create('allProcessors') {
       extendsFrom ourProcessorConf
       visible = false
       description = "The sink configuration that collects all processors, whether defined in a SourceSet's custom " +
