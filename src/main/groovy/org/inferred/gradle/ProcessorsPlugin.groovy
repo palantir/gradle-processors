@@ -97,7 +97,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  private void configureEclipsePlugin(Project project, Configuration processorConf) {
+  private void configureEclipsePlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(EclipsePlugin) {
       // JavaBasePlugin & JavaPlugin again are necessary as EclipsePlugin wires up classpath configuration after
       // JavaPlugin and we need to be applied after that.
@@ -115,7 +115,7 @@ class ProcessorsPlugin implements Plugin<Project> {
                       "EclipseClasspath::plusConfigurations should not be empty, this indicates that EclipsePlugin "
                               + "didn't initialize it by the time we tried to mutate it")
             }
-            classpath.plusConfigurations += [processorConf]
+            classpath.plusConfigurations += [allProcessorConf]
             if (jdt != null) {
               jdt.file.withProperties {
                 it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
@@ -131,11 +131,11 @@ class ProcessorsPlugin implements Plugin<Project> {
                   {
                     [
                             outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
-                            deps     : processorConf
+                            deps     : allProcessorConf
                     ]
                   }
           )
-          project.tasks.eclipseAptPrefs.inputs.files processorConf
+          project.tasks.eclipseAptPrefs.inputs.files allProcessorConf
           project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
 
@@ -144,9 +144,9 @@ class ProcessorsPlugin implements Plugin<Project> {
                   'eclipseFactoryPath',
                   'org/inferred/gradle/factorypath.template',
                   '.factorypath',
-                  { [deps: processorConf] }
+                  { [deps: allProcessorConf] }
           )
-          project.tasks.eclipseFactoryPath.inputs.files processorConf
+          project.tasks.eclipseFactoryPath.inputs.files allProcessorConf
           project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
         }
@@ -154,7 +154,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  private void configureIdeaPlugin(Project project, Configuration processorConf) {
+  private void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
       if (project == project.rootProject) {
         // Generated source directories can only be specified per-workspace in IntelliJ.
@@ -169,7 +169,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
 
       if (project.idea.module.scopes.PROVIDED != null) {
-        project.idea.module.scopes.PROVIDED.plus += [processorConf]
+        project.idea.module.scopes.PROVIDED.plus += [allProcessorConf]
       }
 
       addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
