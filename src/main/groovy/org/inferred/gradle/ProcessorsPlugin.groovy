@@ -1,11 +1,10 @@
 package org.inferred.gradle
 
-
 import groovy.text.SimpleTemplateEngine
 import org.gradle.api.GradleException
-import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.JavaBasePlugin
@@ -14,6 +13,7 @@ import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
@@ -24,19 +24,60 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   void apply(Project project) {
 
-    def processorConf = project.configurations.create('processor')
     project.extensions.create('processors', ProcessorsExtension)
 
-    /**** javac, groovy, etc. *********************************************************************/
+    def ourProcessorConf = project.configurations.create('processor') {
+      visible = false
+      description = "The only configuration where processors should be added by the user. These are also added to " +
+              "the 'compileOnly' configuration of every sourceSet."
+    }
+    def allProcessorsConf = project.configurations.create('allProcessors') {
+      extendsFrom ourProcessorConf
+      visible = false
+      description = "The sink configuration that collects all processors, whether defined in a SourceSet's custom " +
+              "annotationProcessor configuration (gradle 4.6+) or directly in the processor configuration exposed " +
+              "by this plugin."
+    }
+
     project.plugins.withType(JavaPlugin, { plugin ->
+      configureJavaCompilerTasks(project, ourProcessorConf, allProcessorsConf)
       def convention = project.convention.plugins['java'] as JavaPluginConvention
-      convention.sourceSets.all { it.compileClasspath += project.configurations.processor }
-      // compat with gradle 4.6 annotationProcessor
-      def annotationProcessor = project.configurations.findByName('annotationProcessor')
-      if (annotationProcessor != null) {
-        processorConf.extendsFrom(annotationProcessor)
+      convention.sourceSets.all { SourceSet sourceSet ->
+        project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom ourProcessorConf
       }
 
+      configureIdeaPlugin(project, allProcessorsConf)
+      configureFindBugs(project)
+      configureJacoco(project)
+    })
+    // Eclipse is a special snowflake because of nested on-plugin-application initializers
+    configureEclipsePlugin(project, allProcessorsConf)
+  }
+
+
+  /**
+   * Configures javac, groovy, etc., such that processors from {@code ourProcessorsConf} are picked up, and all
+   * processors coming from there as well as Gradle 4.6+ {@link org.gradle.api.tasks.SourceSet#getAnnotationProcessorConfigurationName()
+   * source set annotation processor configurations} will be included in {@code allProcessorsConf}.
+   */
+  private void configureJavaCompilerTasks(
+          Project project, Configuration ourProcessorsConf, Configuration allProcessorsConf) {
+    // compat with gradle 4.6 annotationProcessor
+    // The configuration is guaranteed to exist (for the 'main' sourceSet) if the java plugin was applied
+    if (project.configurations.findByName('annotationProcessor') != null) {
+      def convention = project.convention.plugins['java'] as JavaPluginConvention
+      // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
+      // added to the 'processor' configuration
+      convention.sourceSets.all { SourceSet sourceSet ->
+        def annotationProcessorConf = project.configurations[sourceSet.annotationProcessorConfigurationName]
+        annotationProcessorConf.extendsFrom ourProcessorsConf
+        allProcessorsConf.extendsFrom annotationProcessorConf
+        // Preserve previously agreed behaviour where just adding something to `annotationProcessor` would add it to the
+        // compile classpath as well, to make testAnnotationProcessor pass
+        project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom(
+                project.configurations.annotationProcessor)
+      }
+    } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
         compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
           doLast {
@@ -53,19 +94,28 @@ class ProcessorsPlugin implements Plugin<Project> {
           }
         })
       }
-    })
+    }
+  }
 
-    /**** Eclipse *********************************************************************************/
-    project.plugins.withType(EclipsePlugin, { plugin ->
-      project.plugins.withType(JavaBasePlugin, { javaBasePlugin ->
-        project.plugins.withType(JavaPlugin, { javaPlugin ->
+  private void configureEclipsePlugin(Project project, Configuration allProcessorConf) {
+    project.plugins.withType(EclipsePlugin) {
+      // JavaBasePlugin & JavaPlugin again are necessary as EclipsePlugin wires up classpath configuration after
+      // JavaPlugin and we need to be applied after that.
+      project.plugins.withType(JavaBasePlugin) {
+        project.plugins.withType(JavaPlugin) {
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
             processors.conventionMapping.outputDir = {
               project.file('generated/java')
             }
 
-            classpath.plusConfigurations += [project.configurations.processor]
+            // If this is empty, then it means EclipsePlugin didn't initialize it yet
+            if (classpath.plusConfigurations.empty) {
+              project.logger.error(
+                      "EclipseClasspath::plusConfigurations should not be empty, this indicates that EclipsePlugin "
+                              + "didn't initialize it by the time we tried to mutate it")
+            }
+            classpath.plusConfigurations += [allProcessorConf]
             if (jdt != null) {
               jdt.file.withProperties {
                 it['org.eclipse.jdt.core.compiler.processAnnotations'] = 'enabled'
@@ -74,67 +124,68 @@ class ProcessorsPlugin implements Plugin<Project> {
           }
 
           templateTask(
-              project,
-              'eclipseAptPrefs',
-              'org/inferred/gradle/apt-prefs.template',
-              '.settings/org.eclipse.jdt.apt.core.prefs',
-              {[
-                outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
-                deps: project.configurations.processor
-              ]}
+                  project,
+                  'eclipseAptPrefs',
+                  'org/inferred/gradle/apt-prefs.template',
+                  '.settings/org.eclipse.jdt.apt.core.prefs',
+                  {
+                    [
+                            outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
+                            deps     : allProcessorConf
+                    ]
+                  }
           )
-          project.tasks.eclipseAptPrefs.inputs.file project.configurations.processor
+          project.tasks.eclipseAptPrefs.inputs.files allProcessorConf
           project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
 
           templateTask(
-              project,
-              'eclipseFactoryPath',
-              'org/inferred/gradle/factorypath.template',
-              '.factorypath',
-              {[deps: project.configurations.processor]}
+                  project,
+                  'eclipseFactoryPath',
+                  'org/inferred/gradle/factorypath.template',
+                  '.factorypath',
+                  { [deps: allProcessorConf] }
           )
-          project.tasks.eclipseFactoryPath.inputs.file project.configurations.processor
+          project.tasks.eclipseFactoryPath.inputs.files allProcessorConf
           project.tasks.eclipse.dependsOn project.tasks.eclipseFactoryPath
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseFactoryPath
-        })
-      })
-    })
+        }
+      }
+    }
+  }
 
-    /**** IntelliJ ********************************************************************************/
+  private void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
-      project.plugins.withType(JavaPlugin, { javaPlugin ->
-        if (project == project.rootProject) {
-          // Generated source directories can only be specified per-workspace in IntelliJ.
-          // As such, it only makes sense to allow the user to configure them on the root project.
-          // If the gradle-processors plugin is not applied to the root project, we just use
-          //   the default values.
-          project.idea.extensions.create('processors', IdeaProcessorsExtension)
-          project.idea.processors {
-            outputDir = 'generated_src'
-            testOutputDir = 'generated_testSrc'
+      if (project == project.rootProject) {
+        // Generated source directories can only be specified per-workspace in IntelliJ.
+        // As such, it only makes sense to allow the user to configure them on the root project.
+        // If the gradle-processors plugin is not applied to the root project, we just use
+        //   the default values.
+        project.idea.extensions.create('processors', IdeaProcessorsExtension)
+        project.idea.processors {
+          outputDir = 'generated_src'
+          testOutputDir = 'generated_testSrc'
+        }
+      }
+
+      if (project.idea.module.scopes.PROVIDED != null) {
+        project.idea.module.scopes.PROVIDED.plus += [allProcessorConf]
+      }
+
+      addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
+      addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
+
+      // Root project configuration
+      if (project.rootProject.hasProperty('idea') && project.rootProject.idea.project != null) {
+        project.rootProject.idea.project.ipr {
+          withXml {
+            // This file is only generated in the root project, but the user may not have applied
+            //   the gradle-processors plugin to the root project. Instead, we update it from
+            //   every project idempotently.
+            updateIdeaCompilerConfiguration(project.rootProject, node, false)
           }
         }
-
-        if (project.idea.module.scopes.PROVIDED != null) {
-          project.idea.module.scopes.PROVIDED.plus += [project.configurations.processor]
-        }
-
-        addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
-        addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
-
-        // Root project configuration
-        if (project.rootProject.hasProperty('idea') && project.rootProject.idea.project != null) {
-          project.rootProject.idea.project.ipr {
-            withXml {
-              // This file is only generated in the root project, but the user may not have applied
-              //   the gradle-processors plugin to the root project. Instead, we update it from
-              //   every project idempotently.
-              updateIdeaCompilerConfiguration(project.rootProject, node, false)
-            }
-          }
-        }
-      })
+      }
     })
 
     project.afterEvaluate {
@@ -155,14 +206,15 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     }
+  }
 
-    /**** FindBugs ********************************************************************************/
+  private static void configureFindBugs(Project project) {
     project.tasks.withType(FindBugs, { findBugsTask ->
       // Create a JAR containing all generated sources.
       // This trick relies on javac putting the generated .java files next to the .class files.
       def jarTask = project.tasks.create(
-          name: findBugsTask.name + 'GeneratedClassesJar',
-          type: org.gradle.api.tasks.bundling.Jar)
+              name: findBugsTask.name + 'GeneratedClassesJar',
+              type: org.gradle.api.tasks.bundling.Jar)
       jarTask.setDependsOn(findBugsTask.dependsOn)
       jarTask.doFirst {
         def generatedSources = findBugsTask.classes.filter {
@@ -193,8 +245,9 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     })
+  }
 
-    /**** JaCoCo ********************************************************************************/
+  private static configureJacoco(Project project) {
     project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
       // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
@@ -218,22 +271,6 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     })
-  }
-
-  /** Runs {@code action} on element {@code name} in {@code collection} whenever it is added. */
-  private static <T> void withName(
-      NamedDomainObjectCollection<T> collection, String name, Closure action) {
-    T object = collection.findByName(name)
-    if (object != null) {
-      action.call(object)
-    } else {
-      collection.whenObjectAdded { o ->
-        String oName = collection.getNamer().determineName(o)
-        if (oName == name) {
-          action.call(o)
-        }
-      }
-    }
   }
 
   static FileCollection getProcessors(Project project) {
