@@ -73,13 +73,14 @@ class ProcessorsPlugin implements Plugin<Project> {
       def convention = project.convention.plugins['java'] as JavaPluginConvention
       // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
       // added to the 'processor' configuration
-      convention.sourceSets.all {
-        def annotationProcessorConf = project.configurations[it.annotationProcessorConfigurationName]
+      convention.sourceSets.all { SourceSet sourceSet ->
+        def annotationProcessorConf = project.configurations[sourceSet.annotationProcessorConfigurationName]
         annotationProcessorConf.extendsFrom ourProcessorsConf
         allProcessorsConf.extendsFrom annotationProcessorConf
         // Preserve previously agreed behaviour where just adding something to `annotationProcessor` would add it to the
         // compile classpath as well, to make testAnnotationProcessor pass
-        project.configurations[it.compileOnlyConfigurationName].extendsFrom project.configurations.annotationProcessor
+        project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom(
+                project.configurations.annotationProcessor)
       }
     } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
