@@ -13,6 +13,7 @@ import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
@@ -46,7 +47,9 @@ class ProcessorsPlugin implements Plugin<Project> {
     project.plugins.withType(JavaPlugin, { plugin ->
       configureJavaCompilerTasks(project, ourProcessorConf, allProcessorsConf)
       def convention = project.convention.plugins['java'] as JavaPluginConvention
-      convention.sourceSets.all { it.compileClasspath += ourProcessorConf }
+      convention.sourceSets.all { SourceSet sourceSet ->
+        project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom ourProcessorConf
+      }
 
       configureIdeaPlugin(project, allProcessorsConf)
       configureFindBugs(project)
@@ -76,7 +79,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         allProcessorsConf.extendsFrom annotationProcessorConf
         // Preserve previously agreed behaviour where just adding something to `annotationProcessor` would add it to the
         // compile classpath as well, to make testAnnotationProcessor pass
-        project.configurations.compileClasspath.extendsFrom project.configurations.annotationProcessor
+        project.configurations[it.compileOnlyConfigurationName].extendsFrom project.configurations.annotationProcessor
       }
     } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
