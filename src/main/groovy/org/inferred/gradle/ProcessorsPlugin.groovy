@@ -196,21 +196,10 @@ class ProcessorsPlugin implements Plugin<Project> {
       //   project idempotently.
       def inIntelliJ = System.properties.'idea.active' as boolean
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
-      File gradleConfigXml = project.rootProject.file(".idea/gradle.xml")
       if (inIntelliJ && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
 
-        def useSeparateModulePerSourceSet = gradleConfigXml.exists() \
-          ? new XmlSlurper().parse(gradleConfigXml)
-                .component
-                ?.find { it.@name == 'GradleSettings' }
-                ?.option
-                ?.find { it.@name == 'linkedExternalProjectsSettings' }
-                ?.GradleProjectSettings
-                ?.option
-                ?.find { it.@name == 'resolveModulePerSourceSet' }
-                ?.@value != "false" // Assume true if it's unset. this is IntelliJ's behaviour
-          : true
+        boolean useSeparateModulePerSourceSet = determineIfSeparateModulePerSourceSet(project)
         updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, useSeparateModulePerSourceSet)
         ideaCompilerXml.withWriter { writer ->
           XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
@@ -219,6 +208,32 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     }
+  }
+
+  /**
+   * Attempt to determine if we are <a href="https://www.jetbrains.com/help/idea/gradle.html">importing from within
+   * IntelliJ</a>, and if so, whether `resolveModulePerSourceSet` is enabled. We do this by checking the
+   * `.idea/gradle.xml` file.
+   * <p>
+   * If there is no such file, this method returns true, to match previous behaviour.
+   */
+  private static boolean determineIfSeparateModulePerSourceSet(Project project) {
+    // This gradle.xml file won't exist unless the project was imported from IntelliJ as a gradle project.
+    // That is a different workflow from `./gradlew idea`.
+    // See 'resolveModulePerSourceSet' definition in IntelliJ codebase:
+    // https://github.com/JetBrains/intellij-community/blob/a38503dc884986dc66675986df691318adeb0efc/plugins/gradle/src/org/jetbrains/plugins/gradle/settings/GradleProjectSettings.java#L29
+    File gradleConfigXml = project.rootProject.file(".idea/gradle.xml")
+    return gradleConfigXml.exists() \
+        ? new XmlSlurper().parse(gradleConfigXml)
+            .component
+            ?.find { it.@name == 'GradleSettings' }
+            ?.option
+            ?.find { it.@name == 'linkedExternalProjectsSettings' }
+            ?.GradleProjectSettings
+            ?.option
+            ?.find { it.@name == 'resolveModulePerSourceSet' }
+            ?.@value != "false" // Assume true if it's unset. this is IntelliJ's behaviour
+        : true
   }
 
   private static void configureFindBugs(Project project) {
