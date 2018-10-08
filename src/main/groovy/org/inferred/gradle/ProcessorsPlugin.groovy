@@ -196,9 +196,22 @@ class ProcessorsPlugin implements Plugin<Project> {
       //   project idempotently.
       def inIntelliJ = System.properties.'idea.active' as boolean
       File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
+      File gradleConfigXml = project.rootProject.file(".idea/gradle.xml")
       if (inIntelliJ && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, true)
+
+        def useSeparateModulePerSourceSet = gradleConfigXml.exists() \
+          ? new XmlSlurper().parse(gradleConfigXml)
+                .component
+                ?.find { it.@name == 'GradleSettings' }
+                ?.option
+                ?.find { it.@name == 'linkedExternalProjectsSettings' }
+                ?.GradleProjectSettings
+                ?.option
+                ?.find { it.@name == 'resolveModulePerSourceSet' }
+                ?.@value != "false" // Assume true if it's unset. this is IntelliJ's behaviour
+          : true
+        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, useSeparateModulePerSourceSet)
         ideaCompilerXml.withWriter { writer ->
           XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
           nodePrinter.setPreserveWhitespace(true)
@@ -307,10 +320,14 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
+  /**
+   * @param usesSeparateModulePerSourceSet  only applicable if using a directory-based project and importing Gradle
+   * from inside IntelliJ.
+   */
   static void updateIdeaCompilerConfiguration(
       Project project,
       Node projectConfiguration,
-      boolean directoryBasedProject) {
+      boolean usesSeparateModulePerSourceSet) {
     Object compilerConfiguration = projectConfiguration.component
             .find { it.@name == 'CompilerConfiguration' }
 
@@ -322,7 +339,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
-    def dirPrefix = (directoryBasedProject ? '../' : '')
+    def dirPrefix = (usesSeparateModulePerSourceSet ? '../' : '')
 
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
