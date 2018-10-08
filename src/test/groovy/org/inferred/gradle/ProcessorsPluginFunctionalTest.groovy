@@ -687,7 +687,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       </project>
     """.stripIndent().trim()
 
-    with("-Didea.active=true", "--stacktrace").withDebug(true).build()
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
     def xml = file(".idea/compiler.xml").text.trim()
 
