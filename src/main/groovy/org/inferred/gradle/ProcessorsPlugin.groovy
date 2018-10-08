@@ -199,8 +199,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       if (inIntelliJ && ideaCompilerXml.isFile()) {
         Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
 
-        boolean useSeparateModulePerSourceSet = determineIfSeparateModulePerSourceSet(project)
-        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, useSeparateModulePerSourceSet)
+        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, determineIfSeparateModulePerSourceSet(project))
         ideaCompilerXml.withWriter { writer ->
           XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
           nodePrinter.setPreserveWhitespace(true)
