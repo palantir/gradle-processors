@@ -633,7 +633,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
           <annotationProcessing/>
         </component>
       </project>
-    """.trim()
+    """.stripIndent().trim()
 
     runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
@@ -657,6 +657,59 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expect:
     expected == xml
   }
+
+  void testAnnotationProcessingInIdeaCompilerXml_separateModulePerSourceSetFalse() throws IOException {
+    buildFile << """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+    """
+
+    file('.idea/compiler.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing/>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    file('.idea/gradle.xml') << """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <project version="4">
+        <component name="GradleSettings">
+          <option name="linkedExternalProjectsSettings">
+            <GradleProjectSettings>
+              <option name="resolveModulePerSourceSet" value="false" />
+            </GradleProjectSettings>
+          </option>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
+
+    def xml = file(".idea/compiler.xml").text.trim()
+
+    def expected = """
+      <project version="4">
+        <component name="CompilerConfiguration">
+          <annotationProcessing>
+            <profile default="true" name="Default" enabled="true">
+              <sourceOutputDir name="generated_src"/>
+              <sourceTestOutputDir name="generated_testSrc"/>
+              <outputRelativeToContentRoot value="true"/>
+              <processorPath useClasspath="true"/>
+            </profile>
+          </annotationProcessing>
+        </component>
+      </project>
+    """.stripIndent().trim()
+
+    expect:
+    expected == xml
+  }
+
 
   void testCompilerXmlNotTouchedIfIdeaNotActive() throws IOException {
     buildFile << """
