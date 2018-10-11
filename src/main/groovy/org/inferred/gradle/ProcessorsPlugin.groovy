@@ -4,6 +4,7 @@ import groovy.text.SimpleTemplateEngine
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
@@ -16,8 +17,10 @@ import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
+import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.util.GUtil
 
 class ProcessorsPlugin implements Plugin<Project> {
@@ -176,36 +179,18 @@ class ProcessorsPlugin implements Plugin<Project> {
       addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
 
       // Root project configuration
-      if (project.rootProject.hasProperty('idea') && project.rootProject.idea.project != null) {
-        project.rootProject.idea.project.ipr {
-          withXml {
+      def ideaModel = project.rootProject.extensions.findByType(IdeaModel)
+      if (ideaModel != null && ideaModel.project != null) {
+        project.rootProject.extensions.getByType(IdeaModel).project.ipr { XmlFileContentMerger merger ->
+          merger.withXml { XmlProvider it ->
             // This file is only generated in the root project, but the user may not have applied
             //   the gradle-processors plugin to the root project. Instead, we update it from
             //   every project idempotently.
-            updateIdeaCompilerConfiguration(project.rootProject, node, false)
+            updateIdeaCompilerConfiguration(project.rootProject, it.asNode())
           }
         }
       }
     })
-
-    project.afterEvaluate {
-      // If the project uses .idea directory structure, and we are running within IntelliJ, update
-      //   compiler.xml directly
-      // This file is only generated in the root project, but the user may not have applied
-      //   the gradle-processors plugin to the root project. Instead, we update it from every
-      //   project idempotently.
-      def inIntelliJ = System.properties.'idea.active' as boolean
-      File ideaCompilerXml = project.rootProject.file('.idea/compiler.xml')
-      if (inIntelliJ && ideaCompilerXml.isFile()) {
-        Node parsedProjectXml = (new XmlParser()).parse(ideaCompilerXml)
-        updateIdeaCompilerConfiguration(project.rootProject, parsedProjectXml, true)
-        ideaCompilerXml.withWriter { writer ->
-          XmlNodePrinter nodePrinter = new XmlNodePrinter(new PrintWriter(writer))
-          nodePrinter.setPreserveWhitespace(true)
-          nodePrinter.print(parsedProjectXml)
-        }
-      }
-    }
   }
 
   private static void configureFindBugs(Project project) {
@@ -307,10 +292,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  static void updateIdeaCompilerConfiguration(
-      Project project,
-      Node projectConfiguration,
-      boolean directoryBasedProject) {
+  static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
     Object compilerConfiguration = projectConfiguration.component
             .find { it.@name == 'CompilerConfiguration' }
 
@@ -322,13 +304,11 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
-    def dirPrefix = (directoryBasedProject ? '../' : '')
-
     compilerConfiguration.annotationProcessing.replaceNode{
       annotationProcessing() {
         profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: dirPrefix + getIdeaSourceOutputDir(project))
-          sourceTestOutputDir(name: dirPrefix + getIdeaSourceTestOutputDir(project))
+          sourceOutputDir(name: getIdeaSourceOutputDir(project))
+          sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
           outputRelativeToContentRoot(value: 'true')
           processorPath(useClasspath: 'true')
         }
