@@ -716,50 +716,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     profile.sourceTestOutputDir.first().@name == "bar"
   }
 
-  void testUserSpecifiedDirectoriesUsedInIdeaCompilerXml() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'idea'
-      apply plugin: 'org.inferred.processors'
-
-      idea.processors {
-        outputDir = 'foo'
-        testOutputDir = 'bar'
-      }
-    """
-
-    file('.idea/compiler.xml') << """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing/>
-        </component>
-      </project>
-    """.trim()
-
-    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
-
-    def xml = file(".idea/compiler.xml").text.trim()
-
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../foo"/>
-              <sourceTestOutputDir name="../bar"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
-    expect:
-    expected == xml
-  }
-
   void testOnlyApplyToSubProject() {
     buildFile << """
       apply plugin: 'idea'
