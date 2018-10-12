@@ -626,36 +626,22 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       apply plugin: 'org.inferred.processors'
     """
 
-    file('.idea/compiler.xml') << """
+    def compilerXml = """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
           <annotationProcessing/>
         </component>
       </project>
-    """.trim()
+    """.stripIndent().trim()
+    file('.idea/compiler.xml') << compilerXml
 
     runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
     def xml = file(".idea/compiler.xml").text.trim()
 
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../generated_src"/>
-              <sourceTestOutputDir name="../generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
     expect:
-    expected == xml
+    compilerXml == xml
   }
 
   void testCompilerXmlNotTouchedIfIdeaNotActive() throws IOException {
@@ -691,35 +677,21 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       apply plugin: 'org.inferred.processors'
     """
 
-    file('.idea/compiler.xml') << """
+    def compilerXml = """
       <?xml version="1.0" encoding="UTF-8"?>
       <project version="4">
         <component name="CompilerConfiguration">
         </component>
       </project>
-    """.trim()
+    """.stripIndent().trim()
+    file('.idea/compiler.xml') << compilerXml
 
     runTasksSuccessfully("-Didea.active=true", "--stacktrace")
 
     def xml = file(".idea/compiler.xml").text.trim()
 
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../generated_src"/>
-              <sourceTestOutputDir name="../generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
     expect:
-    expected == xml
+    compilerXml == xml
   }
 
   void testUserSpecifiedDirectoriesUsedInIdeaIprFile() throws IOException {
@@ -742,50 +714,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expect:
     profile.sourceOutputDir.first().@name == "foo"
     profile.sourceTestOutputDir.first().@name == "bar"
-  }
-
-  void testUserSpecifiedDirectoriesUsedInIdeaCompilerXml() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'idea'
-      apply plugin: 'org.inferred.processors'
-
-      idea.processors {
-        outputDir = 'foo'
-        testOutputDir = 'bar'
-      }
-    """
-
-    file('.idea/compiler.xml') << """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing/>
-        </component>
-      </project>
-    """.trim()
-
-    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
-
-    def xml = file(".idea/compiler.xml").text.trim()
-
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../foo"/>
-              <sourceTestOutputDir name="../bar"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
-    expect:
-    expected == xml
   }
 
   void testOnlyApplyToSubProject() {
@@ -851,130 +779,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     runTasksSuccessfully("eclipse")
     assertAutoValueInFile(file(".classpath"))
     assertAutoValueInFile(file(".factorypath"))
-  }
-
-  /** See <a href="https://github.com/palantir/gradle-processors/issues/28">issue #28</a> */
-  void testIdeaCompilerConfigurationUpdatedWithoutNeedToApplyIdeaPlugin() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'org.inferred.processors'
-    """
-
-    file('.idea/compiler.xml') << """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing/>
-        </component>
-      </project>
-    """.trim()
-
-    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
-
-    def xml = file(".idea/compiler.xml").text.trim()
-
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../generated_src"/>
-              <sourceTestOutputDir name="../generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
-    expect:
-    expected == xml
-  }
-
-  /** See <a href="https://github.com/palantir/gradle-processors/issues/53">issue #53</a> */
-  void testCompilerXmlModificationWhenIdeaPluginImportedLast() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'org.inferred.processors'
-      apply plugin: 'idea'
-
-      idea.processors {
-        outputDir = 'foo'
-        testOutputDir = 'bar'
-      }
-    """
-
-    file('.idea/compiler.xml') << """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing/>
-        </component>
-      </project>
-    """.trim()
-
-    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
-
-    def xml = file(".idea/compiler.xml").text.trim()
-
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../foo"/>
-              <sourceTestOutputDir name="../bar"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
-    expect:
-    expected == xml
-  }
-
-  /** See <a href="https://github.com/palantir/gradle-processors/issues/53">issue #53</a> */
-  void testCompilerXmlModificationWhenIdeaPluginNotAppliedToRootProject() throws IOException {
-    multiProject.addSubproject("A", """
-        apply plugin: 'java'
-        apply plugin: 'idea'
-        apply plugin: 'org.inferred.processors'
-    """.stripIndent())
-
-    file('.idea/compiler.xml') << """
-      <?xml version="1.0" encoding="UTF-8"?>
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing/>
-        </component>
-      </project>
-    """.trim()
-
-    runTasksSuccessfully("-Didea.active=true", "--stacktrace")
-
-    def xml = file(".idea/compiler.xml").text.trim()
-
-    def expected = """
-      <project version="4">
-        <component name="CompilerConfiguration">
-          <annotationProcessing>
-            <profile default="true" name="Default" enabled="true">
-              <sourceOutputDir name="../generated_src"/>
-              <sourceTestOutputDir name="../generated_testSrc"/>
-              <outputRelativeToContentRoot value="true"/>
-              <processorPath useClasspath="true"/>
-            </profile>
-          </annotationProcessing>
-        </component>
-      </project>
-    """.stripIndent().trim()
-
-    expect:
-    expected == xml
   }
 
   private void assertAutoValueInFile(File file) {
