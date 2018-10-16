@@ -75,10 +75,6 @@ class ProcessorsPlugin implements Plugin<Project> {
         def annotationProcessorConf = project.configurations[sourceSet.annotationProcessorConfigurationName]
         annotationProcessorConf.extendsFrom ourProcessorsConf
         allProcessorsConf.extendsFrom annotationProcessorConf
-        // Preserve previously agreed behaviour where just adding something to `annotationProcessor` would add it to the
-        // compile classpath as well, to make testAnnotationProcessor pass
-        project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom(
-                project.configurations.annotationProcessor)
       }
     } else {
       project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
