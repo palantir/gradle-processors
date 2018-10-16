@@ -53,6 +53,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
       dependencies {
         annotationProcessor 'com.google.auto.value:auto-value:1.0'
+        compileOnly 'com.google.auto.value:auto-value-annotations:1.0'
       }
     """
 
