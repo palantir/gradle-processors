@@ -52,7 +52,8 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       apply plugin: 'org.inferred.processors'
 
       dependencies {
-        annotationProcessor 'com.google.auto.value:auto-value:1.0'
+        annotationProcessor 'com.google.auto.value:auto-value:1.6.2'
+        compileOnly 'com.google.auto.value:auto-value-annotations:1.6.2'
       }
     """
 
