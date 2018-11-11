@@ -750,7 +750,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
-    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
+    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == ":" ? it : null }
     expect:
     profile.sourceOutputDir.first().@name == "foo"
     profile.sourceTestOutputDir.first().@name == "bar"
@@ -779,7 +779,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
-    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
+    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == ":projectB" ? it : null }
 
     expect:
     profile.sourceOutputDir.first().@name == "generated_src"
