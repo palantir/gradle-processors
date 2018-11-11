@@ -620,6 +620,45 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expected == sourceFolderUrls.toSet()
   }
 
+  void testAnnotationProcessingInIdeaIpr() throws IOException {
+    def subproject = """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+      
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """.stripIndent()
+    multiProject.addSubproject('foo', subproject)
+    multiProject.addSubproject('bar', subproject)
+
+    buildFile << "apply plugin: 'idea'"
+
+    when:
+    runTasksSuccessfully("idea", "--stacktrace")
+
+    then:
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
+    def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
+    def profiles = compilerConfiguration.annotationProcessing.profile
+
+    expect:
+    profiles.each {
+      with(it) {
+        it.processorPath.first().@useClasspath == 'false'
+        !it.processorPath.entry.isEmpty()
+      }
+    }
+
+    with(profiles.find { it.@name == ':foo' }) { profile ->
+      profile.module.first().@name == 'foo'
+    }
+    with(profiles.find { it.@name == ':bar' }) { profile ->
+      profile.module.first().@name == 'bar'
+    }
+  }
+
   void testAnnotationProcessingInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
