@@ -182,7 +182,7 @@ class ProcessorsPlugin implements Plugin<Project> {
             // This file is only generated in the root project, but the user may not have applied
             //   the gradle-processors plugin to the root project. Instead, we update it from
             //   every project idempotently.
-            updateIdeaCompilerConfiguration(project.rootProject, it.asNode())
+            updateIdeaCompilerConfiguration(project.rootProject, it.asNode(), allProcessorConf)
           }
         }
       }
@@ -288,7 +288,8 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
+  static void updateIdeaCompilerConfiguration(
+      Project project, Node projectConfiguration, Configuration processorsConfiguration) {
     Object compilerConfiguration = projectConfiguration.component
             .find { it.@name == 'CompilerConfiguration' }
 
@@ -306,7 +307,11 @@ class ProcessorsPlugin implements Plugin<Project> {
           sourceOutputDir(name: getIdeaSourceOutputDir(project))
           sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
           outputRelativeToContentRoot(value: 'true')
-          processorPath(useClasspath: 'true')
+          processorPath(useClasspath: 'false') {
+            processorsConfiguration.forEach {
+              entry(name: it.absolutePath)
+            }
+          }
         }
       }
     }
