@@ -977,6 +977,27 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expected == xml
   }
 
+  /** The processorPath* tasks are only created in gradle < 4.6 */
+  @Unroll("test picks up new source sets on gradle #gradleVersion")
+  def testPicksUpNewSourceSets() {
+    buildFile << '''
+      apply plugin: 'org.inferred.processors'
+      apply plugin: 'java'
+      sourceSets {
+        foo
+      }
+    '''.stripIndent()
+
+    when:
+    def result = runTasksSuccessfully('compileFooJava')
+
+    then:
+    result.task(':processorPathCompileFooJava') != null
+
+    where:
+    gradleVersion << ['3.5', '4.5']
+  }
+
   private void assertAutoValueInFile(File file) {
     if (!file.any { it.contains("auto-value-1.0.jar") }) {
       println "====== $file.name ============================================================"

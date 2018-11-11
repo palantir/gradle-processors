@@ -79,17 +79,6 @@ class ProcessorsPluginTest {
     assertNotNull project.tasks.eclipseFactoryPath
   }
 
-  @Test
-  public void picksUpNewSourceSets() {
-    Project project = ProjectBuilder.builder().build()
-    project.pluginManager.apply 'org.inferred.processors'
-    project.pluginManager.apply 'java'
-    getJavaConvention(project).sourceSets {
-      foo
-    }
-
-    assertTrue project.tasks.compileFooJava.dependsOn.contains(project.tasks.processorPathCompileFooJava)
-  }
 
   private static JavaPluginConvention getJavaConvention(Project project) {
     project.convention.plugins['java'] as JavaPluginConvention
