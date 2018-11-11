@@ -647,7 +647,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     profiles.each {
       with(it) {
         it.processorPath.first().@useClasspath == 'false'
-        !it.processorPath.entry.isEmpty()
+        it.processorPath.first().entry.collect { it.@name.text() }.any { it.contains 'value-2.0.21.jar' }
       }
     }
 
