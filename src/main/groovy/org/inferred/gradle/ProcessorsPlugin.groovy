@@ -51,7 +51,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         project.configurations[sourceSet.compileOnlyConfigurationName].extendsFrom ourProcessorConf
       }
 
-      configureIdeaPlugin(project, ourProcessorConf, allProcessorsConf)
+      configureIdeaPlugin(project, allProcessorsConf)
       configureFindBugs(project)
       configureJacoco(project)
     })
@@ -155,18 +155,13 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  private static void configureIdeaPlugin(
-      Project project, Configuration ourProcessorConf, Configuration allProcessorConf) {
+  private static void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
       IdeaModel idea = project.extensions.getByType(IdeaModel)
       def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
       extension.with {
         outputDir = 'generated_src'
         testOutputDir = 'generated_testSrc'
-      }
-
-      if (idea.module.scopes.PROVIDED != null) {
-        idea.module.scopes.PROVIDED.plus += [ourProcessorConf]
       }
 
       addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
