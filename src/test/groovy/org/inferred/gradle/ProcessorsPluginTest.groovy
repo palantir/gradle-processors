@@ -1,6 +1,5 @@
 package org.inferred.gradle
 
-
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.testfixtures.ProjectBuilder

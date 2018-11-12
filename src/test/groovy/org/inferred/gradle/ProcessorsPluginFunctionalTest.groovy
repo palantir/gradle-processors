@@ -620,6 +620,45 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     expected == sourceFolderUrls.toSet()
   }
 
+  void testAnnotationProcessingInIdeaIpr() throws IOException {
+    def subproject = """
+      apply plugin: 'java'
+      apply plugin: 'idea'
+      apply plugin: 'org.inferred.processors'
+      
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+      }
+    """.stripIndent()
+    multiProject.addSubproject('foo', subproject)
+    multiProject.addSubproject('bar', subproject)
+
+    buildFile << "apply plugin: 'idea'"
+
+    when:
+    runTasksSuccessfully("idea", "--stacktrace")
+
+    then:
+    def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
+    def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
+    def profiles = compilerConfiguration.annotationProcessing.profile
+
+    expect:
+    profiles.each {
+      with(it) {
+        it.processorPath.first().@useClasspath == 'false'
+        it.processorPath.first().entry.collect { it.@name.text() }.any { it.contains 'value-2.0.21.jar' }
+      }
+    }
+
+    with(profiles.find { it.@name == ':foo' }) { profile ->
+      profile.module.first().@name == 'foo'
+    }
+    with(profiles.find { it.@name == ':bar' }) { profile ->
+      profile.module.first().@name == 'bar'
+    }
+  }
+
   void testAnnotationProcessingInIdeaCompilerXml() throws IOException {
     buildFile << """
       apply plugin: 'java'
@@ -711,7 +750,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
-    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
+    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == ":" ? it : null }
     expect:
     profile.sourceOutputDir.first().@name == "foo"
     profile.sourceTestOutputDir.first().@name == "bar"
@@ -740,7 +779,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     def xml = new XmlSlurper().parse(file("${projectDir.name}.ipr"))
     def compilerConfiguration = xml.component.findResult { it.@name == "CompilerConfiguration" ? it : null }
-    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == "Default" ? it : null }
+    def profile = compilerConfiguration.annotationProcessing.profile.findResult { it.@name == ":projectB" ? it : null }
 
     expect:
     profile.sourceOutputDir.first().@name == "generated_src"

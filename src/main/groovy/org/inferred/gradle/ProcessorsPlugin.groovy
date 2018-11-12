@@ -8,6 +8,7 @@ import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.file.FileCollection
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
@@ -21,6 +22,7 @@ import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
+import org.gradle.plugins.ide.idea.model.IdeaModule
 import org.gradle.util.GUtil
 
 class ProcessorsPlugin implements Plugin<Project> {
@@ -153,36 +155,27 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  private void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
+  private static void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
-      if (project == project.rootProject) {
-        // Generated source directories can only be specified per-workspace in IntelliJ.
-        // As such, it only makes sense to allow the user to configure them on the root project.
-        // If the gradle-processors plugin is not applied to the root project, we just use
-        //   the default values.
-        project.idea.extensions.create('processors', IdeaProcessorsExtension)
-        project.idea.processors {
-          outputDir = 'generated_src'
-          testOutputDir = 'generated_testSrc'
-        }
-      }
-
-      if (project.idea.module.scopes.PROVIDED != null) {
-        project.idea.module.scopes.PROVIDED.plus += [allProcessorConf]
+      IdeaModel idea = project.extensions.getByType(IdeaModel)
+      def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
+      extension.with {
+        outputDir = 'generated_src'
+        testOutputDir = 'generated_testSrc'
       }
 
       addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
       addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
 
       // Root project configuration
-      def ideaModel = project.rootProject.extensions.findByType(IdeaModel)
-      if (ideaModel != null && ideaModel.project != null) {
-        project.rootProject.extensions.getByType(IdeaModel).project.ipr { XmlFileContentMerger merger ->
+      def rootModel = project.rootProject.extensions.findByType(IdeaModel)
+      if (rootModel != null && rootModel.project != null) {
+        rootModel.project.ipr { XmlFileContentMerger merger ->
           merger.withXml { XmlProvider it ->
             // This file is only generated in the root project, but the user may not have applied
-            //   the gradle-processors plugin to the root project. Instead, we update it from
-            //   every project idempotently.
-            updateIdeaCompilerConfiguration(project.rootProject, it.asNode())
+            //   the gradle-processors plugin to the root project.
+            // In either case, we add a distinct profile for each project.
+            setupIdeaAnnotationProcessing(project, idea.module, it.asNode(), allProcessorConf)
           }
         }
       }
@@ -288,8 +281,9 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
   }
 
-  static void updateIdeaCompilerConfiguration(Project project, Node projectConfiguration) {
-    Object compilerConfiguration = projectConfiguration.component
+  static void setupIdeaAnnotationProcessing(
+      Project project, IdeaModule ideaModule, Node projectConfiguration, Configuration processorsConfiguration) {
+    Node compilerConfiguration = projectConfiguration.component
             .find { it.@name == 'CompilerConfiguration' }
 
     if (compilerConfiguration == null) {
@@ -300,14 +294,23 @@ class ProcessorsPlugin implements Plugin<Project> {
       new Node(compilerConfiguration, "annotationProcessing")
     }
 
-    compilerConfiguration.annotationProcessing.replaceNode{
-      annotationProcessing() {
-        profile(default: 'true', name: 'Default', enabled: 'true') {
-          sourceOutputDir(name: getIdeaSourceOutputDir(project))
-          sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
-          outputRelativeToContentRoot(value: 'true')
-          processorPath(useClasspath: 'true')
+    project.logger.info("Configuring annotationProcessing profile for ${ideaModule.name}")
+
+    // Add a profile specifically for this module, or re-use an existing profile for that module
+    Node processingNode = (compilerConfiguration.annotationProcessing as NodeList).first()
+    def profileForModule = processingNode.profile.find { it.module.any { it.@name == ideaModule.name } }
+        ?: processingNode.appendNode('profile')
+    profileForModule.replaceNode {
+      profile(name: project.path, enabled: 'true') {
+        sourceOutputDir(name: getIdeaSourceOutputDir(project))
+        sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
+        outputRelativeToContentRoot(value: 'true')
+        processorPath(useClasspath: 'false') {
+          processorsConfiguration.forEach {
+            entry(name: it.absolutePath)
+          }
         }
+        module(name: ideaModule.name)
       }
     }
   }
