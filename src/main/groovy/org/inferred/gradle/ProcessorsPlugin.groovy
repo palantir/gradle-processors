@@ -107,7 +107,10 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
             processors.conventionMapping.outputDir = {
-              project.file('generated/java')
+              project.file('generated/main/java')
+            }
+            processors.conventionMapping.testOutputDir = {
+              project.file('generated/test/java')
             }
 
             // If this is empty, then it means EclipsePlugin didn't initialize it yet
@@ -132,6 +135,7 @@ class ProcessorsPlugin implements Plugin<Project> {
                   {
                     [
                             outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
+                            testOutputDir: project.relativePath(project.eclipse.processors.testOutputDir).replace('\\', '\\\\'),
                             deps     : allProcessorConf
                     ]
                   }
@@ -383,6 +387,7 @@ class ProcessorsExtension {
 
 class EclipseProcessorsExtension {
   Object outputDir
+  Object testOutputDir
 }
 
 class IdeaProcessorsExtension {
