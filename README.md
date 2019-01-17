@@ -1,7 +1,7 @@
 Gradle Processors
 =================
 
-A plugin for Gradle that cleans up integration of Java 6+ [annotation processors][] with the
+A plugin for Gradle that cleans up integration of Java [annotation processors][] with the
 [Eclipse][], [IDEA][] and [FindBugs][] plugins.
 
 [annotation processors]: http://docs.oracle.com/javase/6/docs/api/javax/annotation/processing/Processor.html
@@ -25,7 +25,22 @@ plugins {
 }
 ```
 
-You can now include annotation processors with the `processor` dependency type:
+The `eclipse` and `idea` tasks will now configure your IDE to run annotation processors as part
+of their regular compilation when you use an annotationProcessor dependency.
+
+```gradle
+
+dependencies {
+  annotationProcessor 'com.google.dagger:dagger-compiler:2.8'
+  implementation 'com.google.dagger:dagger:2.8'
+}
+```
+
+Gradle 4.5 and earlier
+----------------------
+
+If you are still using Gradle 4.5 or earlier, you can use the legacy `processor` dependency type to enable annotation processing:
+
 
 ```gradle
 
@@ -34,9 +49,7 @@ dependencies {
 }
 ```
 
-The `eclipse` and `idea` tasks will now configure your IDE to run annotation processors as part
-of their regular compilation. Alternatively, you can continue to open your build.gradle file
-directly from within IntelliJ.
+This functions as a combination of the modern "annotationProcessor" and "compileOnly" blocks: it both enables the annotation processor, and makes any annotations it exposes available to use in source code.
 
 Gradle 2.0 and earlier
 ----------------------
