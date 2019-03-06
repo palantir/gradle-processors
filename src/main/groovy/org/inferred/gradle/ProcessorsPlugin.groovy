@@ -223,16 +223,16 @@ class ProcessorsPlugin implements Plugin<Project> {
   }
 
   private static configureJacoco(Project project) {
+    // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
+    if (GradleVersion.current() >= GradleVersion.version("5.0")) {
+      return
+    }
+
     project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
       // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
         def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
           it.path.endsWith '.java'
-        }
-
-        // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
-        if (GradleVersion.current() >= GradleVersion.version("5.0")) {
-          return
         }
         jacocoReportTask.classDirectories = jacocoReportTask.classDirectories.asFileTree.filter {
           if (generatedSources.contains(it)) return false
