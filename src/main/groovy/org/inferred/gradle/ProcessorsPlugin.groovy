@@ -24,6 +24,7 @@ import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
 import org.gradle.util.GUtil
+import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
 
@@ -229,7 +230,10 @@ class ProcessorsPlugin implements Plugin<Project> {
           it.path.endsWith '.java'
         }
 
-        //
+        // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
+        if (GradleVersion.current() >= GradleVersion.version("5.0")) {
+          return
+        }
         jacocoReportTask.classDirectories = jacocoReportTask.classDirectories.asFileTree.filter {
           if (generatedSources.contains(it)) return false
 
