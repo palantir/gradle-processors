@@ -20,7 +20,6 @@ class AbstractPluginTest extends IntegrationTestKitSpec {
     // Necessary when using gradle 5+
     settingsFile.createNewFile()
     println("Build directory: \n" + projectDir.absolutePath)
-    multiProject = new MultiProjectIntegrationHelper(projectDir, settingsFile)
   }
 
   GradleRunner with(String... tasks) {
