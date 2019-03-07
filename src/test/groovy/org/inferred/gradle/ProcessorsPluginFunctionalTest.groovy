@@ -298,6 +298,71 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     !report.contains('covered="0"')
   }
 
+  void testJacocoIntegrationDoesNotBreakInGradle5() throws IOException {
+    this.gradleVersion = gradleVersion
+    buildFile << """
+      repositories {
+        maven {
+          url  "https://dl.bintray.com/palantir/releases"
+        }
+      }
+      apply plugin: 'java'
+      apply plugin: 'jacoco'
+      apply plugin: 'org.inferred.processors'
+      
+      jacocoTestReport {
+        reports {
+          xml.enabled true
+          html.enabled false
+        }
+      }
+
+      dependencies {
+        processor 'org.immutables:value:2.0.21'
+        testCompile "junit:junit:4.12"
+      }
+    """
+
+    file("src/main/java/MyClass.java") << """
+      import org.immutables.value.Value;
+
+      @Value.Immutable
+      public interface MyClass {
+        @Value.Parameter String getValue();
+
+        class Builder extends ImmutableMyClass.Builder {}
+      }
+    """
+
+    file('src/test/java/MyClassTest.java') << """
+      import org.junit.Test;
+
+      public class MyClassTest {
+         @Test
+         public void testBuilder() {
+            new MyClass.Builder();
+         }        
+      }
+    """
+
+    expect:
+    def result = runTasksSuccessfully("test", "jacocoTestReport", "--info", "-s")
+    result.task(':jacocoTestReport').outcome == TaskOutcome.SUCCESS
+
+    // Ensure generated classes not included in JaCoCo report
+    def report = file('build/reports/jacoco/test/jacocoTestReport.xml').text
+    !report.empty
+
+    and:
+    // TODO(dsanduleac): re-enable these if we decide to implement this logic for gradle 5+
+//    !report.contains('name="Immutable')
+//    !report.contains('covered="0"')
+
+    where:
+    gradleVersion << ['5.0']
+  }
+
+
   /** See <a href="https://github.com/palantir/gradle-processors/issues/3">issue #3</a> */
   void testProcessorJarsNotExported() throws IOException {
     buildFile << """
