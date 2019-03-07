@@ -105,6 +105,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
   @Unroll
   void 'testJavaTestCompilation for gradle #gradleVersion'() throws IOException {
+    this.gradleVersion = gradleVersion
     buildFile << """
       apply plugin: 'org.inferred.processors'
       apply plugin: 'java'

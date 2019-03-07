@@ -4,30 +4,21 @@
 
 package org.inferred.gradle
 
-import groovy.transform.CompileStatic
-import groovy.transform.TypeCheckingMode
+
+import nebula.test.IntegrationTestKitSpec
 import nebula.test.multiproject.MultiProjectIntegrationHelper
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
-import spock.lang.Specification
 
-class AbstractPluginTest extends Specification {
+class AbstractPluginTest extends IntegrationTestKitSpec {
 
-  @Rule
-  TemporaryFolder folder = new TemporaryFolder()
-
-  File buildFile
-  File settingsFile
   MultiProjectIntegrationHelper multiProject
-  File projectDir
   String gradleVersion
 
   def setup() {
-    projectDir = folder.getRoot()
-    buildFile = file('build.gradle')
-    settingsFile = file('settings.gradle')
+    keepFiles = true
+    // Necessary when using gradle 5+
+    settingsFile.createNewFile()
     println("Build directory: \n" + projectDir.absolutePath)
     multiProject = new MultiProjectIntegrationHelper(projectDir, settingsFile)
   }
@@ -59,27 +50,13 @@ class AbstractPluginTest extends Specification {
     return proc.exitValue() == 0
   }
 
-  @CompileStatic(TypeCheckingMode.SKIP)
-  protected File createFile(String path, File baseDir = projectDir) {
-    File file = file(path, baseDir)
-    assert !file.exists()
-    file.parentFile.mkdirs()
-    assert file.createNewFile()
-    return file
-  }
-
+  /** Intentionally overwritten as {@link nebula.test.BaseIntegrationSpec#file} creates the file */
+  @Override
   protected File file(String path, File baseDir = projectDir) {
     def splitted = path.split('/')
     def directory = splitted.size() > 1 ? directory(splitted[0..-2].join('/'), baseDir) : baseDir
     def file = new File(directory, splitted[-1])
     return file
-  }
-
-  protected File directory(String path, File baseDir = projectDir) {
-    return new File(baseDir, path).with {
-      mkdirs()
-      return it
-    }
   }
 
   protected BuildResult runTasksSuccessfully(String... tasks) {
