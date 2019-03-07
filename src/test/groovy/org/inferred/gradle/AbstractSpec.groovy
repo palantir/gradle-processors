@@ -6,11 +6,13 @@ package org.inferred.gradle
 
 
 import nebula.test.IntegrationTestKitSpec
+import nebula.test.multiproject.MultiProjectIntegrationHelper
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 
 class AbstractPluginTest extends IntegrationTestKitSpec {
 
+  MultiProjectIntegrationHelper multiProject
   String gradleVersion
 
   def setup() {
@@ -18,6 +20,7 @@ class AbstractPluginTest extends IntegrationTestKitSpec {
     // Necessary when using gradle 5+
     settingsFile.createNewFile()
     println("Build directory: \n" + projectDir.absolutePath)
+    multiProject = new MultiProjectIntegrationHelper(projectDir, settingsFile)
   }
 
   GradleRunner with(String... tasks) {
