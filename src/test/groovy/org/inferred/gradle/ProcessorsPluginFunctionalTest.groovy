@@ -162,48 +162,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     runTasksSuccessfully("compileGroovy")
   }
 
-  void testFindBugsIntegration() throws IOException {
-    // Version 2.0.21 of Immutables generates code that FindBugs takes exception to.
-    // The antipatterns 1.0 plugin causes issues if it cannot find supertypes.
-    buildFile << """
-      repositories {
-        maven {
-          url  "https://dl.bintray.com/palantir/releases"
-        }
-      }
-      apply plugin: 'java'
-      apply plugin: 'findbugs'
-      apply plugin: 'org.inferred.processors'
-
-      dependencies {
-        findbugsPlugins 'com.palantir.antipatterns:antipatterns:1.0'
-        processor 'org.immutables:value:2.0.21'
-        compile 'com.google.code.findbugs:annotations:3.0.0'
-      }
-    """
-
-    file("src/main/java/MyClass.java") << """
-      import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-      import org.immutables.value.Value;
-
-      @Value.Immutable
-      public interface MyClass {
-        @Value.Parameter String getValue();
-
-        @SuppressFBWarnings("PT_EXTENDS_CONCRETE_TYPE")
-        class Builder extends ImmutableMyClass.Builder {}
-      }
-    """
-
-    runTasksSuccessfully("findbugsMain")
-
-    // Ensure no missing classes were reported
-    def report = file('build/reports/findbugs/main.xml').text
-
-    expect:
-    !report.contains('<MissingClass>')
-  }
-
   void testFindBugsIntegrationImmutablesEnclosing() throws IOException {
     buildFile << """
       apply plugin: 'java'
