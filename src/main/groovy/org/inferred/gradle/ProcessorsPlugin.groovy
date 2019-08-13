@@ -43,6 +43,13 @@ class ProcessorsPlugin implements Plugin<Project> {
       description = "The sink configuration that collects all processors, whether defined in a SourceSet's custom " +
               "annotationProcessor configuration (gradle 4.6+) or directly in the processor configuration exposed " +
               "by this plugin."
+      canBeConsumed = false
+      // If using a processor defined in the same build, it's useful to point to its classes directory rather than
+      // to require rebuilding the jar every time. This ensures that when resolving, we get the "classes" variant out
+      // of such projects, if it is defined.
+      attributes {
+        attribute Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_API)
+      }
     }
 
     project.plugins.withType(JavaPlugin, { plugin ->
