@@ -235,11 +235,6 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
   }
 
-  static FileCollection getProcessors(Project project) {
-    ResolvedConfiguration config = project.configurations.processor.resolvedConfiguration
-    return project.files(config.getFiles({ d -> true } as Spec<Object>))
-  }
-
   static void templateTask(project, taskName, templateFilename, outputFilename, binding) {
     def outputFile = new File(project.projectDir, outputFilename)
     def cleanTaskName = "clean" + taskName.substring(0, 1).toUpperCase() + taskName.substring(1)
