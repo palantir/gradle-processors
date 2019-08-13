@@ -9,3 +9,6 @@ deploy:
   script: ./gradlew clean publishPlugins
   on:
     tags: true
+
+script:
+  - jdk_switcher use openjdk8
