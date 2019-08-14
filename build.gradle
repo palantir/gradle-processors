@@ -46,7 +46,7 @@ test {
 //// Publication //////////////////////////////////////////////////////////////////////
 
 group = 'org.inferred'
-version = (System.env.CIRCLE_TAG ?: gitVersion()).replaceAll('^v','')<Paste>
+version = (System.env.CIRCLE_TAG ?: gitVersion()).replaceAll('^v','')
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'
