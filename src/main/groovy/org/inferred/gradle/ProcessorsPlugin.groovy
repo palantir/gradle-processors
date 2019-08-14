@@ -289,7 +289,7 @@ class ProcessorsPlugin implements Plugin<Project> {
         sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
         outputRelativeToContentRoot(value: 'true')
         processorPath(useClasspath: 'false') {
-          processorConfiguration.forEach {
+          processorsConfiguration.forEach {
             entry(name: it.absolutePath)
           }
         }
