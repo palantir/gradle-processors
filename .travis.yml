@@ -14,7 +14,6 @@ jdk:
   - openjdk8
 
 script:
-  - jdk_switcher use openjdk8
   - openssl rand -hex 64 -out key.bin
   - echo Secrets
   - echo "$gradlePublishKey\n$gradlePublishSecret" | openssl enc -aes-256-cbc -salt -pass file:./key.bin | base64
