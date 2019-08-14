@@ -6,29 +6,26 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvedConfiguration
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.attributes.Usage
-import org.gradle.api.file.FileCollection
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.quality.FindBugs
-import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
-import org.gradle.util.GUtil
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
+  static final Logger log = Logging.getLogger(ProcessorsPlugin)
 
   void apply(Project project) {
     if (GradleVersion.current() < GradleVersion.version("4.6")) {
@@ -296,7 +293,16 @@ class ProcessorsPlugin implements Plugin<Project> {
       if (id instanceof ProjectComponentIdentifier && artifact.variant.attributes.contains(Usage.USAGE_ATTRIBUTE)) {
         Project dependencyProject = project.rootProject.project(id.projectPath)
         IdeaModel idea = dependencyProject.extensions.getByType(IdeaModel)
-        return [idea.module.outputDir]
+        def dependencyModule = idea.module
+        def projectOutputDir = projectConfiguration.component
+                .find { it.@name == 'ProjectRootManager' }
+                .output
+                .@url[0]
+                .replaceAll('^\\Qfile://$PROJECT_DIR$/', '')
+        def outputDir = dependencyModule.outputDir
+                ?: project.rootProject.file("${projectOutputDir}/production/${dependencyModule.name}")
+        log.lifecycle("Configuring annotation dependency ${project.path} -> ${dependencyProject.path} with output dir: $outputDir")
+        return outputDir
       } else {
         return artifact.file
       }
