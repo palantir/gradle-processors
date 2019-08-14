@@ -283,24 +283,13 @@ class ProcessorsPlugin implements Plugin<Project> {
     Node processingNode = (compilerConfiguration.annotationProcessing as NodeList).first()
     def profileForModule = processingNode.profile.find { it.module.any { it.@name == ideaModule.name } }
         ?: processingNode.appendNode('profile')
-
-    def processorFiles = processorsConfiguration.incoming.artifacts.artifacts.collect { artifact ->
-      def id = artifact.id.componentIdentifier
-      if (id instanceof ProjectComponentIdentifier && artifact.variant.attributes.contains(Usage.USAGE_ATTRIBUTE)) {
-        Project dependencyProject = project.rootProject.project(id.projectPath)
-        IdeaModel idea = dependencyProject.extensions.getByType(IdeaModel)
-        return [idea.module.outputDir]
-      } else {
-        return artifact.file
-      }
-    }
     profileForModule.replaceNode {
       profile(name: project.path, enabled: 'true') {
         sourceOutputDir(name: getIdeaSourceOutputDir(project))
         sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
         outputRelativeToContentRoot(value: 'true')
         processorPath(useClasspath: 'false') {
-          processorFiles.forEach {
+          processorConfiguration.forEach {
             entry(name: it.absolutePath)
           }
         }
