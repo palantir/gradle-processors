@@ -54,7 +54,7 @@ pluginBundle {
 
   plugins {
     processors {
-	  // id automatically picked up from equivalent gradlePlugin.plugins entry
+      id = 'org.inferred.processors'
       displayName = 'Processors plugin'
       description = 'Clean integration of Java 6+ annotation processors with the Eclipse and IDEA plugins'
       tags = ['java', 'annotation', 'processor']
@@ -64,5 +64,6 @@ pluginBundle {
 
 // Configure the publishPlugins task
 tasks.publish.dependsOn tasks.publishPlugins
+tasks.publishPlugins.onlyIf { versionDetails().isCleanTag }
 project.ext.'gradle.publish.key' = System.env["GRADLE_KEY"]
 project.ext.'gradle.publish.secret' = System.env["GRADLE_SECRET"]
