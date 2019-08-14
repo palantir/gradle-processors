@@ -46,33 +46,23 @@ test {
 //// Publication //////////////////////////////////////////////////////////////////////
 
 group = 'org.inferred'
-version = (System.env.TRAVIS_TAG ?: gitVersion()).replaceAll('^v','')
+version = (System.env.CIRCLE_TAG ?: gitVersion()).replaceAll('^v','')<Paste>
 
 pluginBundle {
   website = 'https://github.com/palantir/gradle-processors'
   vcsUrl = 'https://github.com/palantir/gradle-processors'
 
   plugins {
-    greetingsPlugin {
+    processors {
+	  // id automatically picked up from equivalent gradlePlugin.plugins entry
       displayName = 'Processors plugin'
-      id = 'org.inferred.processors'
       description = 'Clean integration of Java 6+ annotation processors with the Eclipse and IDEA plugins'
       tags = ['java', 'annotation', 'processor']
     }
   }
 }
 
-// Read publication secrets from environment
-task setupPublishProperties {
-  doLast {
-    def key = System.env.gradlePublishKey
-    if (key) {
-      System.properties.setProperty("gradle.publish.key", key)
-    }
-    def secret = System.env.gradlePublishSecret
-    if (secret) {
-      System.properties.setProperty("gradle.publish.secret", secret)
-    }
-  }
-}
-tasks.publishPlugins.dependsOn tasks.setupPublishProperties
+// Configure the publishPlugins task
+tasks.publish.dependsOn tasks.publishPlugins
+project.ext.'gradle.publish.key' = System.env["GRADLE_KEY"]
+project.ext.'gradle.publish.secret' = System.env["GRADLE_SECRET"]
