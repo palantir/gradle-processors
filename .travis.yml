@@ -10,5 +10,5 @@ deploy:
   on:
     tags: true
 
-script:
-  - jdk_switcher use openjdk8
+jdk:
+  - openjdk8
