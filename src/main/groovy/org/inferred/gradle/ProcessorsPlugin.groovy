@@ -6,26 +6,17 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvedConfiguration
-import org.gradle.api.artifacts.component.ProjectComponentIdentifier
-import org.gradle.api.attributes.Usage
-import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.plugins.quality.FindBugs
-import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
-import org.gradle.util.GUtil
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
@@ -173,7 +164,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
 
     project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
-      // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
+      // Assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
         def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
           it.path.endsWith '.java'
@@ -321,7 +312,6 @@ class ProcessorsPlugin implements Plugin<Project> {
 }
 
 class ProcessorsExtension {
-  boolean suppressFindbugs = true
 }
 
 class EclipseProcessorsExtension {

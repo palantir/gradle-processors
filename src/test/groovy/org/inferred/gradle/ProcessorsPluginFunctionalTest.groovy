@@ -162,42 +162,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     runTasksSuccessfully("compileGroovy")
   }
 
-  void testFindBugsIntegrationImmutablesEnclosing() throws IOException {
-    buildFile << """
-      apply plugin: 'java'
-      apply plugin: 'findbugs'
-      apply plugin: 'org.inferred.processors'
-
-      processors {
-        suppressFindbugs = false
-      }
-
-      dependencies {
-        processor 'com.google.code.findbugs:findbugs-annotations:3.0.1'
-        processor 'org.immutables:value:2.4.0'
-
-        compile 'com.fasterxml.jackson.core:jackson-databind:2.8.6'
-      }
-    """
-
-    file("src/main/java/MyClass.java") << """
-      import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-      import org.immutables.value.Value;
-
-      @Value.Enclosing
-      public interface MyClass {
-        @Value.Immutable
-        @JsonDeserialize(as = ImmutableMyClass.Inner.class)
-        interface Inner {
-          @Value.Parameter String getValue();
-        }
-      }
-    """
-
-    expect:
-    runTasksSuccessfully("findbugsMain")
-  }
-
   void testJacocoIntegration() throws IOException {
     buildFile << """
       repositories {
