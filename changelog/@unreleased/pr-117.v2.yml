@@ -1,5 +1,6 @@
 type: break
 break:
-  description: Remove support for FindBugs ti raise minimum compatible version of Gradle to 4.6
+  description: >
+    Remove support for FindBugs in order to support Gradle 6+. The plugin now requires at least Gradle 4.6.
   links:
     - https://github.com/palantir/gradle-processors/pull/115
