@@ -6,29 +6,25 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.ResolvedConfiguration
-import org.gradle.api.file.FileCollection
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.plugins.quality.FindBugs
-import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
-import org.gradle.util.GUtil
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
 
   void apply(Project project) {
+    if (GradleVersion.current() < GradleVersion.version("4.6")) {
+      throw new GradleException("This plugin requires Gradle 4.6+")
+    }
 
     project.extensions.create('processors', ProcessorsExtension)
 
@@ -53,7 +49,6 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
 
       configureIdeaPlugin(project, allProcessorsConf)
-      configureFindBugs(project)
       configureJacoco(project)
     })
     // Eclipse is a special snowflake because of nested on-plugin-application initializers
@@ -66,36 +61,15 @@ class ProcessorsPlugin implements Plugin<Project> {
    * processors coming from there as well as Gradle 4.6+ {@link org.gradle.api.tasks.SourceSet#getAnnotationProcessorConfigurationName()
    * source set annotation processor configurations} will be included in {@code allProcessorsConf}.
    */
-  private void configureJavaCompilerTasks(
+  private static void configureJavaCompilerTasks(
           Project project, Configuration ourProcessorsConf, Configuration allProcessorsConf) {
-    // compat with gradle 4.6 annotationProcessor
-    // The configuration is guaranteed to exist (for the 'main' sourceSet) if the java plugin was applied
-    if (project.configurations.findByName('annotationProcessor') != null) {
-      def convention = project.convention.plugins['java'] as JavaPluginConvention
-      // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
-      // added to the 'processor' configuration
-      convention.sourceSets.all { SourceSet sourceSet ->
-        def annotationProcessorConf = project.configurations[sourceSet.annotationProcessorConfigurationName]
-        annotationProcessorConf.extendsFrom ourProcessorsConf
-        allProcessorsConf.extendsFrom annotationProcessorConf
-      }
-    } else {
-      project.tasks.withType(JavaCompile).all { JavaCompile compileTask ->
-        compileTask.dependsOn project.task(GUtil.toLowerCamelCase('processorPath ' + compileTask.name), {
-          doLast {
-            String path = getProcessors(project).getAsPath()
-            compileTask.options.compilerArgs += ["-processorpath", path]
-          }
-        })
-      }
-      project.tasks.withType(Javadoc).all { Javadoc javadocTask ->
-        javadocTask.dependsOn project.task(GUtil.toLowerCamelCase('javadocProcessors ' + javadocTask.name), {
-          doLast {
-            Set<File> path = getProcessors(project).files
-            javadocTask.options.classpath += path
-          }
-        })
-      }
+    def convention = project.convention.plugins['java'] as JavaPluginConvention
+    // Rely on gradle's annotationProcessor handling logic, and make sure it also picks up processors that were
+    // added to the 'processor' configuration
+    convention.sourceSets.all { SourceSet sourceSet ->
+      def annotationProcessorConf = project.configurations[sourceSet.annotationProcessorConfigurationName]
+      annotationProcessorConf.extendsFrom ourProcessorsConf
+      allProcessorsConf.extendsFrom annotationProcessorConf
     }
   }
 
@@ -183,45 +157,6 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
   }
 
-  private static void configureFindBugs(Project project) {
-    project.tasks.withType(FindBugs, { findBugsTask ->
-      // Create a JAR containing all generated sources.
-      // This trick relies on javac putting the generated .java files next to the .class files.
-      def jarTask = project.tasks.create(
-              name: findBugsTask.name + 'GeneratedClassesJar',
-              type: org.gradle.api.tasks.bundling.Jar)
-      jarTask.setDependsOn(findBugsTask.dependsOn)
-      jarTask.doFirst {
-        def generatedSources = findBugsTask.classes.filter {
-          it.path.endsWith '.java'
-        }
-        Set<File> generatedClasses = findBugsTask.classes.filter {
-          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
-          boolean isGenerated = generatedSources.contains(new File(javaFile))
-          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          while (outerFile != javaFile) {
-            javaFile = outerFile
-            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
-            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          }
-          return isGenerated
-        }.files
-        generatedClasses.each { jarTask.from(it) }
-      }
-      findBugsTask.dependsOn jarTask
-      findBugsTask.doFirst {
-        if (project.processors.suppressFindbugs) {
-          // Exclude generated sources from FindBugs' traversal.
-          findBugsTask.classes = findBugsTask.classes.filter { !jarTask.inputs.files.contains(it) }
-
-          // Include the generated sources JAR on the FindBugs classpath
-          def generatedClassesJar = jarTask.outputs.files.files.find { true }
-          findBugsTask.classpath += project.files(generatedClassesJar)
-        }
-      }
-    })
-  }
-
   private static configureJacoco(Project project) {
     // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
     if (GradleVersion.current() >= GradleVersion.version("5.0")) {
@@ -229,7 +164,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
 
     project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
-      // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
+      // Assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
         def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
           it.path.endsWith '.java'
@@ -249,11 +184,6 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     })
-  }
-
-  static FileCollection getProcessors(Project project) {
-    ResolvedConfiguration config = project.configurations.processor.resolvedConfiguration
-    return project.files(config.getFiles({ d -> true } as Spec<Object>))
   }
 
   static void templateTask(project, taskName, templateFilename, outputFilename, binding) {
@@ -382,7 +312,6 @@ class ProcessorsPlugin implements Plugin<Project> {
 }
 
 class ProcessorsExtension {
-  boolean suppressFindbugs = true
 }
 
 class EclipseProcessorsExtension {

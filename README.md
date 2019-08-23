@@ -6,12 +6,11 @@ Gradle Processors
 =================
 
 A plugin for Gradle that cleans up integration of Java [annotation processors][] with the
-[Eclipse][], [IDEA][] and [FindBugs][] plugins.
+[Eclipse][] and [IDEA][] plugins.
 
 [annotation processors]: http://docs.oracle.com/javase/6/docs/api/javax/annotation/processing/Processor.html
 [Eclipse]: https://docs.gradle.org/current/userguide/eclipse_plugin.html
 [IDEA]: https://docs.gradle.org/current/userguide/idea_plugin.html
-[FindBugs]: https://docs.gradle.org/current/userguide/findbugs_plugin.html
 
 [![GitHub release](https://img.shields.io/github/release/palantir/gradle-processors.svg?maxAge=60)](https://plugins.gradle.org/plugin/org.inferred.processors)
 [![Travis](https://img.shields.io/travis/palantir/gradle-processors.svg?maxAge=60)](https://travis-ci.org/palantir/gradle-processors)
