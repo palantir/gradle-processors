@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Correctly set project name to `gradle-processors`
+  links:
+  - https://github.com/palantir/gradle-processors/pull/120
