@@ -6,6 +6,10 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.XmlProvider
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.attributes.Usage
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
@@ -20,6 +24,7 @@ import org.gradle.plugins.ide.idea.model.IdeaModule
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
+  static final Logger log = Logging.getLogger(ProcessorsPlugin)
 
   void apply(Project project) {
     if (GradleVersion.current() < GradleVersion.version("4.6")) {
@@ -39,6 +44,13 @@ class ProcessorsPlugin implements Plugin<Project> {
       description = "The sink configuration that collects all processors, whether defined in a SourceSet's custom " +
               "annotationProcessor configuration (gradle 4.6+) or directly in the processor configuration exposed " +
               "by this plugin."
+      canBeConsumed = false
+      // If using a processor defined in the same build, it's useful to point to its classes directory rather than
+      // to require rebuilding the jar every time. This ensures that when resolving, we get the "classes" variant out
+      // of such projects, if it is defined.
+      attributes {
+        attribute Usage.USAGE_ATTRIBUTE, project.objects.named(Usage, Usage.JAVA_API)
+      }
     }
 
     project.plugins.withType(JavaPlugin, { plugin ->
@@ -234,13 +246,33 @@ class ProcessorsPlugin implements Plugin<Project> {
     Node processingNode = (compilerConfiguration.annotationProcessing as NodeList).first()
     def profileForModule = processingNode.profile.find { it.module.any { it.@name == ideaModule.name } }
         ?: processingNode.appendNode('profile')
+
+    def processorFiles = processorsConfiguration.incoming.artifacts.artifacts.collect { artifact ->
+      def id = artifact.id.componentIdentifier
+      if (id instanceof ProjectComponentIdentifier && artifact.variant.attributes.contains(Usage.USAGE_ATTRIBUTE)) {
+        Project dependencyProject = project.rootProject.project(id.projectPath)
+        IdeaModel idea = dependencyProject.extensions.getByType(IdeaModel)
+        def dependencyModule = idea.module
+        def projectOutputDir = projectConfiguration.component
+                .find { it.@name == 'ProjectRootManager' }
+                .output
+                .@url[0]
+                .replaceAll('^\\Qfile://$PROJECT_DIR$/', '')
+        def outputDir = dependencyModule.outputDir
+                ?: project.rootProject.file("${projectOutputDir}/production/${dependencyModule.name}")
+        log.lifecycle("Configuring annotation dependency ${project.path} -> ${dependencyProject.path} with output dir: $outputDir")
+        return outputDir
+      } else {
+        return artifact.file
+      }
+    }
     profileForModule.replaceNode {
       profile(name: project.path, enabled: 'true') {
         sourceOutputDir(name: getIdeaSourceOutputDir(project))
         sourceTestOutputDir(name: getIdeaSourceTestOutputDir(project))
         outputRelativeToContentRoot(value: 'true')
         processorPath(useClasspath: 'false') {
-          processorsConfiguration.forEach {
+          processorFiles.forEach {
             entry(name: it.absolutePath)
           }
         }
