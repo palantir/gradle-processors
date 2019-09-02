@@ -14,7 +14,6 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
-import org.gradle.api.plugins.quality.FindBugs
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
 import org.gradle.plugins.ide.api.XmlFileContentMerger
@@ -62,7 +61,6 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
 
       configureIdeaPlugin(project, allProcessorsConf)
-      configureFindBugs(project)
       configureJacoco(project)
     })
     // Eclipse is a special snowflake because of nested on-plugin-application initializers
@@ -171,45 +169,6 @@ class ProcessorsPlugin implements Plugin<Project> {
     })
   }
 
-  private static void configureFindBugs(Project project) {
-    project.tasks.withType(FindBugs, { findBugsTask ->
-      // Create a JAR containing all generated sources.
-      // This trick relies on javac putting the generated .java files next to the .class files.
-      def jarTask = project.tasks.create(
-              name: findBugsTask.name + 'GeneratedClassesJar',
-              type: org.gradle.api.tasks.bundling.Jar)
-      jarTask.setDependsOn(findBugsTask.dependsOn)
-      jarTask.doFirst {
-        def generatedSources = findBugsTask.classes.filter {
-          it.path.endsWith '.java'
-        }
-        Set<File> generatedClasses = findBugsTask.classes.filter {
-          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
-          boolean isGenerated = generatedSources.contains(new File(javaFile))
-          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          while (outerFile != javaFile) {
-            javaFile = outerFile
-            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
-            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          }
-          return isGenerated
-        }.files
-        generatedClasses.each { jarTask.from(it) }
-      }
-      findBugsTask.dependsOn jarTask
-      findBugsTask.doFirst {
-        if (project.processors.suppressFindbugs) {
-          // Exclude generated sources from FindBugs' traversal.
-          findBugsTask.classes = findBugsTask.classes.filter { !jarTask.inputs.files.contains(it) }
-
-          // Include the generated sources JAR on the FindBugs classpath
-          def generatedClassesJar = jarTask.outputs.files.files.find { true }
-          findBugsTask.classpath += project.files(generatedClassesJar)
-        }
-      }
-    })
-  }
-
   private static configureJacoco(Project project) {
     // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
     if (GradleVersion.current() >= GradleVersion.version("5.0")) {
@@ -217,7 +176,7 @@ class ProcessorsPlugin implements Plugin<Project> {
     }
 
     project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
-      // Use same trick as FindBugs above - assume that a class with a matching .java file is generated, and exclude
+      // Assume that a class with a matching .java file is generated, and exclude
       jacocoReportTask.doFirst {
         def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
           it.path.endsWith '.java'
@@ -385,7 +344,6 @@ class ProcessorsPlugin implements Plugin<Project> {
 }
 
 class ProcessorsExtension {
-  boolean suppressFindbugs = true
 }
 
 class EclipseProcessorsExtension {
