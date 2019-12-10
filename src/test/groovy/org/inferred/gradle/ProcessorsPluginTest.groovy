@@ -1,19 +1,18 @@
 package org.inferred.gradle
 
 import org.gradle.api.Project
-import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Ignore
 import org.junit.Test
 
 import static org.junit.Assert.assertEquals
+import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertTrue
 
 class ProcessorsPluginTest {
 
   @Test
-  public void addsProcessorDependenciesToJavaClasspath() {
+  void addsProcessorDependenciesToJavaClasspath() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
     project.pluginManager.apply 'java'
@@ -23,18 +22,18 @@ class ProcessorsPluginTest {
   }
 
   @Test
-  public void addsSourceDirectoryConfiguration() {
+  void addsSourceDirectoryConfiguration() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
-    project.pluginManager.apply 'idea'
     project.pluginManager.apply 'java'
+    project.pluginManager.apply 'idea'
 
     assertEquals 'generated_src', project.idea.processors.outputDir
     assertEquals 'generated_testSrc', project.idea.processors.testOutputDir
   }
 
   @Test
-  public void addsEclipseConfigurationTasks_processorsFirst() {
+  void addsEclipseConfigurationTasks_processorsFirst() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
     project.pluginManager.apply 'java'
@@ -45,7 +44,7 @@ class ProcessorsPluginTest {
   }
 
   @Test
-  public void addsEclipseConfigurationTasks_processorsLast() {
+  void addsEclipseConfigurationTasks_processorsLast() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'java'
     project.pluginManager.apply 'eclipse'
@@ -56,7 +55,18 @@ class ProcessorsPluginTest {
   }
 
   @Test
-  public void configuresIdeaGeneratedSourcesDirectories() {
+  void addsEclipseConfigurationTasks_eclipseFirst() {
+    Project project = ProjectBuilder.builder().build()
+    project.pluginManager.apply 'org.inferred.processors'
+    project.pluginManager.apply 'eclipse'
+    project.pluginManager.apply 'java'
+
+    assertNotNull project.tasks.eclipseAptPrefs
+    assertNotNull project.tasks.eclipseFactoryPath
+  }
+
+  @Test
+  void configuresIdeaGeneratedSourcesDirectories() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
     project.pluginManager.apply 'java'
@@ -69,17 +79,13 @@ class ProcessorsPluginTest {
   }
 
   @Test
-  public void addsEclipseConfigurationTasks_eclipseFirst() {
+  void configuredIdeaScopes() {
     Project project = ProjectBuilder.builder().build()
     project.pluginManager.apply 'org.inferred.processors'
-    project.pluginManager.apply 'eclipse'
     project.pluginManager.apply 'java'
+    project.pluginManager.apply 'idea'
 
-    assertNotNull project.tasks.eclipseAptPrefs
-    assertNotNull project.tasks.eclipseFactoryPath
-  }
-
-  private static JavaPluginConvention getJavaConvention(Project project) {
-    project.convention.plugins['java'] as JavaPluginConvention
+    assertFalse project.idea.module.scopes.PROVIDED.plus.contains(project.configurations['annotationProcessor'])
+    assertFalse project.idea.module.scopes.TEST.plus.contains(project.configurations['testAnnotationProcessor'])
   }
 }

@@ -21,6 +21,8 @@ import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
+import org.gradle.plugins.ide.idea.model.internal.GeneratedIdeaScope
+import org.gradle.plugins.ide.idea.model.internal.IdeaDependenciesProvider
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
@@ -153,6 +155,15 @@ class ProcessorsPlugin implements Plugin<Project> {
 
       addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
       addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
+
+      idea.module.scopes
+              .get(GeneratedIdeaScope.PROVIDED.name())
+              .get(IdeaDependenciesProvider.SCOPE_PLUS)
+              .remove(JavaPlugin.ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
+      idea.module.scopes
+              .get(GeneratedIdeaScope.TEST.name())
+              .get(IdeaDependenciesProvider.SCOPE_PLUS)
+              .remove(JavaPlugin.TEST_ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
 
       // Root project configuration
       def rootModel = project.rootProject.extensions.findByType(IdeaModel)
