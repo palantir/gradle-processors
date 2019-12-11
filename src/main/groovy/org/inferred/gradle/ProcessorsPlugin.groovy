@@ -156,6 +156,9 @@ class ProcessorsPlugin implements Plugin<Project> {
       addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
       addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
 
+      // We need to remove the configurations from the plus configurations.
+      // If we instead added the configurations from the minus configurations, then that would remove dependencies that
+      // are shared with other configurations in the plus configurations.
       idea.module.scopes
               .get(GeneratedIdeaScope.PROVIDED.name())
               .get(IdeaDependenciesProvider.SCOPE_PLUS)
