@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Remove annotation processor dependencies from IDEA scopes, to avoid
+    potentially getting two different versions of the same jar in your PROVIDED or
+    TEST scopes in IDEA (one from `(test)annotationProcessor`, one from `(test)compileClasspath`).
+  links:
+  - https://github.com/palantir/gradle-processors/pull/144
