@@ -148,13 +148,18 @@ class ProcessorsPlugin implements Plugin<Project> {
     project.plugins.withType(IdeaPlugin, { plugin ->
       IdeaModel idea = project.extensions.getByType(IdeaModel)
       def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
-      extension.with {
-        outputDir = 'generated_src'
-        testOutputDir = 'generated_testSrc'
-      }
 
-      addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
-      addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
+      // Ensure we're not importing from intellij before configuring these, otherwise we will conflict with Intellij's
+      // own way of handling annotation processor output directories.
+      if (!Boolean.getBoolean("idea.active")) {
+        extension.with {
+          outputDir = 'generated_src'
+          testOutputDir = 'generated_testSrc'
+        }
+
+        addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
+        addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
+      }
 
       // We need to remove the configurations from the plus configurations.
       // If we instead added the configurations from the minus configurations, then that would remove dependencies that
