@@ -2,7 +2,6 @@ package org.inferred.gradle
 
 import groovy.util.slurpersupport.NodeChild
 import org.gradle.testkit.runner.TaskOutcome
-import org.junit.Test
 import spock.lang.Unroll
 
 class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
@@ -809,22 +808,6 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     assertAutoValueInFile(file(".classpath"))
     assertAutoValueInFile(file(".factorypath"))
   }
-
-    @Test
-    void applying_to_project_with_idea_but_without_java_causes_no_errors() {
-        buildFile << """
-            apply plugin: 'org.inferred.processors'
-            apply plugin: 'idea'
-            
-            dependencies {
-            processor 'com.google.auto.value:auto-value:1.0'
-            }
-        """
-
-        expect:
-        runTasksSuccessfully('idea')
-
-    }
 
   private void assertAutoValueInFile(File file) {
     if (!file.any { it.contains("auto-value-1.0.jar") }) {
