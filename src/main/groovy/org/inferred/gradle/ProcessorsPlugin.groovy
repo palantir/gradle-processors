@@ -145,8 +145,8 @@ class ProcessorsPlugin implements Plugin<Project> {
   }
 
   private static void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
-    project.plugins.withType(IdeaPlugin, { plugin ->
-        project.plugins.withType(JavaPlugin) {
+    project.plugins.withType(IdeaPlugin, { ideaPlugin ->
+        project.plugins.withType(JavaPlugin) { javaPlugin ->
             IdeaModel idea = project.extensions.getByType(IdeaModel)
             def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
 
