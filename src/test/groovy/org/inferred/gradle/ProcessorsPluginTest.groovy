@@ -88,11 +88,4 @@ class ProcessorsPluginTest {
     assertFalse project.idea.module.scopes.PROVIDED.plus.contains(project.configurations['annotationProcessor'])
     assertFalse project.idea.module.scopes.TEST.plus.contains(project.configurations['testAnnotationProcessor'])
   }
-
-    @Test
-    void applying_to_project_without_java_causes_no_errors() {
-        Project project = ProjectBuilder.builder().build()
-        project.pluginManager.apply 'org.inferred.processors'
-        project.pluginManager.apply 'idea'
-    }
 }
