@@ -146,45 +146,47 @@ class ProcessorsPlugin implements Plugin<Project> {
 
   private static void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
     project.plugins.withType(IdeaPlugin, { plugin ->
-      IdeaModel idea = project.extensions.getByType(IdeaModel)
-      def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
+        project.plugins.withType(JavaPlugin) {
+            IdeaModel idea = project.extensions.getByType(IdeaModel)
+            def extension = (idea as ExtensionAware).extensions.create('processors', IdeaProcessorsExtension)
 
-      // Ensure we're not importing from intellij before configuring these, otherwise we will conflict with Intellij's
-      // own way of handling annotation processor output directories.
-      if (!Boolean.getBoolean("idea.active")) {
-        extension.with {
-          outputDir = 'generated_src'
-          testOutputDir = 'generated_testSrc'
+            // Ensure we're not importing from intellij before configuring these, otherwise we will conflict with Intellij's
+            // own way of handling annotation processor output directories.
+            if (!Boolean.getBoolean("idea.active")) {
+                extension.with {
+                    outputDir = 'generated_src'
+                    testOutputDir = 'generated_testSrc'
+                }
+
+                addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
+                addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
+            }
+
+            // We need to remove the configurations from the plus configurations.
+            // If we instead added the configurations from the minus configurations, then that would remove dependencies that
+            // are shared with other configurations in the plus configurations.
+            idea.module.scopes
+                    .get(GeneratedIdeaScope.PROVIDED.name())
+                    .get(IdeaDependenciesProvider.SCOPE_PLUS)
+                    .remove(JavaPlugin.ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
+            idea.module.scopes
+                    .get(GeneratedIdeaScope.TEST.name())
+                    .get(IdeaDependenciesProvider.SCOPE_PLUS)
+                    .remove(JavaPlugin.TEST_ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
+
+            // Root project configuration
+            def rootModel = project.rootProject.extensions.findByType(IdeaModel)
+            if (rootModel != null && rootModel.project != null) {
+                rootModel.project.ipr { XmlFileContentMerger merger ->
+                    merger.withXml { XmlProvider it ->
+                        // This file is only generated in the root project, but the user may not have applied
+                        //   the gradle-processors plugin to the root project.
+                        // In either case, we add a distinct profile for each project.
+                        setupIdeaAnnotationProcessing(project, idea.module, it.asNode(), allProcessorConf)
+                    }
+                }
+            }
         }
-
-        addGeneratedSourceFolder(project, { getIdeaSourceOutputDir(project) }, false)
-        addGeneratedSourceFolder(project, { getIdeaSourceTestOutputDir(project) }, true)
-      }
-
-      // We need to remove the configurations from the plus configurations.
-      // If we instead added the configurations from the minus configurations, then that would remove dependencies that
-      // are shared with other configurations in the plus configurations.
-      idea.module.scopes
-              .get(GeneratedIdeaScope.PROVIDED.name())
-              .get(IdeaDependenciesProvider.SCOPE_PLUS)
-              .remove(JavaPlugin.ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
-      idea.module.scopes
-              .get(GeneratedIdeaScope.TEST.name())
-              .get(IdeaDependenciesProvider.SCOPE_PLUS)
-              .remove(JavaPlugin.TEST_ANNOTATION_PROCESSOR_CONFIGURATION_NAME)
-
-      // Root project configuration
-      def rootModel = project.rootProject.extensions.findByType(IdeaModel)
-      if (rootModel != null && rootModel.project != null) {
-        rootModel.project.ipr { XmlFileContentMerger merger ->
-          merger.withXml { XmlProvider it ->
-            // This file is only generated in the root project, but the user may not have applied
-            //   the gradle-processors plugin to the root project.
-            // In either case, we add a distinct profile for each project.
-            setupIdeaAnnotationProcessing(project, idea.module, it.asNode(), allProcessorConf)
-          }
-        }
-      }
     })
   }
 
