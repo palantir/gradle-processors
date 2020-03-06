@@ -77,15 +77,4 @@ class ProcessorsPluginTest {
     assertTrue project.idea.module.testSourceDirs.contains(project.file('generated_testSrc'))
     assertTrue project.idea.module.generatedSourceDirs.contains(project.file('generated_testSrc'))
   }
-
-  @Test
-  void configuredIdeaScopes() {
-    Project project = ProjectBuilder.builder().build()
-    project.pluginManager.apply 'org.inferred.processors'
-    project.pluginManager.apply 'java'
-    project.pluginManager.apply 'idea'
-
-    assertFalse project.idea.module.scopes.PROVIDED.plus.contains(project.configurations['annotationProcessor'])
-    assertFalse project.idea.module.scopes.TEST.plus.contains(project.configurations['testAnnotationProcessor'])
-  }
 }
