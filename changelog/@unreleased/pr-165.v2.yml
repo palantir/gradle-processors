@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Annotation processor dependencies are no longer explicitly removed
+    from IDEA scopes. As of Gradle 6.3, annotation processor dependencies are no longer
+    added to IDEA scopes by the IDEA plugin.
+  links:
+  - https://github.com/palantir/gradle-processors/pull/165
