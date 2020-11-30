@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 export CIRCLECI_TEMPLATE=java-library-oss
+export JDK=8
 export PRIMARY_BRANCH=master
-export JAVA_11=false
+export UNIT_TEST_11=true
