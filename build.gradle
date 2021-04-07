@@ -9,7 +9,9 @@ plugins {
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
+    maven { url 'https://palantir.bintray.com/releases' }
+    jcenter()
 }
 
 sourceCompatibility = '1.7'
