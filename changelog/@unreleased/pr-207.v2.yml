@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove extra log spam
+  links:
+  - https://github.com/palantir/gradle-processors/pull/207

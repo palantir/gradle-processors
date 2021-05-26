@@ -265,7 +265,6 @@ class ProcessorsPlugin implements Plugin<Project> {
                 .replaceAll('^\\Qfile://$PROJECT_DIR$/', '')
         def outputDir = dependencyModule.outputDir
                 ?: project.rootProject.file("${projectOutputDir}/production/${dependencyModule.name}")
-        log.lifecycle("Configuring annotation dependency ${project.path} -> ${dependencyProject.path} with output dir: $outputDir")
         return outputDir
       } else {
         return artifact.file
