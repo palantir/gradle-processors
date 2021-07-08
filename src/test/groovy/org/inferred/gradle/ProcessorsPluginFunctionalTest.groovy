@@ -165,9 +165,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
   void testJacocoIntegration() throws IOException {
     buildFile << """
       repositories {
-        maven {
-          url  "https://dl.bintray.com/palantir/releases"
-        }
+        mavenCentral()
       }
       apply plugin: 'java'
       apply plugin: 'jacoco'
@@ -224,9 +222,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     this.gradleVersion = gradleVersion
     buildFile << """
       repositories {
-        maven {
-          url  "https://dl.bintray.com/palantir/releases"
-        }
+        mavenCentral()
       }
       apply plugin: 'java'
       apply plugin: 'jacoco'
