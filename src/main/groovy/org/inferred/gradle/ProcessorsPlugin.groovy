@@ -24,11 +24,10 @@ import org.gradle.plugins.ide.idea.model.IdeaModule
 import org.gradle.util.GradleVersion
 
 class ProcessorsPlugin implements Plugin<Project> {
-  static final Logger log = Logging.getLogger(ProcessorsPlugin)
 
   void apply(Project project) {
-    if (GradleVersion.current() < GradleVersion.version("4.6")) {
-      throw new GradleException("This plugin requires Gradle 4.6+")
+    if (GradleVersion.current() < GradleVersion.version("6.9")) {
+      throw new GradleException("This plugin requires Gradle 6.9+")
     }
 
     project.extensions.create('processors', ProcessorsExtension)
