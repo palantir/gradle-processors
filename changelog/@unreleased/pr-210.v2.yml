@@ -1,0 +1,5 @@
+type: break
+break:
+  description: Update to modern versions, require gradle 6.9+
+  links:
+  - https://github.com/palantir/gradle-processors/pull/210
