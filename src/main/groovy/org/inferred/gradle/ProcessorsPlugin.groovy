@@ -61,7 +61,6 @@ class ProcessorsPlugin implements Plugin<Project> {
       }
 
       configureIdeaPlugin(project, allProcessorsConf)
-      configureJacoco(project)
     })
     // Eclipse is a special snowflake because of nested on-plugin-application initializers
     configureEclipsePlugin(project, allProcessorsConf)
@@ -169,35 +168,6 @@ class ProcessorsPlugin implements Plugin<Project> {
             // In either case, we add a distinct profile for each project.
             setupIdeaAnnotationProcessing(project, idea.module, it.asNode(), allProcessorConf)
           }
-        }
-      }
-    })
-  }
-
-  private static configureJacoco(Project project) {
-    // JacocoReport.classDirectories was deprecated in gradle 5 and breaks with the current code
-    if (GradleVersion.current() >= GradleVersion.version("5.0")) {
-      return
-    }
-
-    project.tasks.withType(jacocoReportClass).all({ jacocoReportTask ->
-      // Assume that a class with a matching .java file is generated, and exclude
-      jacocoReportTask.doFirst {
-        def generatedSources = jacocoReportTask.classDirectories.asFileTree.filter {
-          it.path.endsWith '.java'
-        }
-        jacocoReportTask.classDirectories = jacocoReportTask.classDirectories.asFileTree.filter {
-          if (generatedSources.contains(it)) return false
-
-          def javaFile = it.path.replaceFirst(/.class$/, '') + '.java'
-          boolean isGenerated = generatedSources.contains(new File(javaFile))
-          def outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          while (outerFile != javaFile) {
-            javaFile = outerFile
-            isGenerated = isGenerated || generatedSources.contains(new File(javaFile))
-            outerFile = javaFile.replaceFirst(/\$\w+.java$/, '.java')
-          }
-          return !isGenerated
         }
       }
     })
@@ -334,17 +304,6 @@ class ProcessorsPlugin implements Plugin<Project> {
       return 'generated_testSrc'
     }
   }
-
-  private static Class getJacocoReportClass() {
-    try {
-      // Only exists in Gradle 1.6+
-      return Class.forName('org.gradle.testing.jacoco.tasks.JacocoReport')
-    } catch (ClassNotFoundException ex) {
-      // Couldn't find JacocoReport, skip JaCoCo integration
-      return Void.class
-    }
-  }
-
 }
 
 class ProcessorsExtension {
