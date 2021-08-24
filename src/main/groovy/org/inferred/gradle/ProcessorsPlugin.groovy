@@ -49,7 +49,7 @@ class ProcessorsPlugin implements Plugin<Project> {
       // to require rebuilding the jar every time. This ensures that when resolving, we get the "classes" variant out
       // of such projects, if it is defined.
       attributes {
-        attribute Usage.USAGE_ATTRIBUTE, project.objects.named(Usage, Usage.JAVA_API)
+        attribute Usage.USAGE_ATTRIBUTE, project.objects.named(Usage, Usage.JAVA_RUNTIME)
       }
     }
 
