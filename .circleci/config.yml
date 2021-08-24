@@ -97,28 +97,6 @@ jobs:
       - store_test_results: { path: ~/junit }
       - store_artifacts: { path: ~/artifacts }
 
-  unit-test-11:
-    docker: [{ image: 'cimg/openjdk:11.0.10-node' }]
-    resource_class: large
-    environment:
-      CIRCLE_TEST_REPORTS: /home/circleci/junit
-      CIRCLE_ARTIFACTS: /home/circleci/artifacts
-      GRADLE_OPTS: -Dorg.gradle.jvmargs='-Xmx2g' -Dorg.gradle.workers.max=2
-      _JAVA_OPTIONS: -XX:ActiveProcessorCount=4 -XX:MaxRAM=8g  -XX:ErrorFile=/home/circleci/artifacts/hs_err_pid%p.log -XX:HeapDumpPath=/home/circleci/artifacts
-    steps:
-      - checkout
-      - restore_cache: { key: 'gradle-wrapper-v2-{{ checksum "gradle/wrapper/gradle-wrapper.properties" }}' }
-      - restore_cache: { key: 'unit-test-11-gradle-cache-v2-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}' }
-      - run: ./gradlew --parallel --stacktrace --continue test -Pcom.palantir.baseline-error-prone.disable
-      - save_cache:
-          key: 'unit-test-11-gradle-cache-v2-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}'
-          paths: [ ~/.gradle/caches ]
-      - run:
-          command: mkdir -p ~/junit && find . -type f -regex ".*/build/.*TEST.*xml" -exec cp --parents {} ~/junit/ \;
-          when: always
-      - store_test_results: { path: ~/junit }
-      - store_artifacts: { path: ~/artifacts }
-
   trial-publish:
     docker: [{ image: 'cimg/openjdk:8.0.282-node' }]
     resource_class: medium
@@ -182,9 +160,6 @@ workflows:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
 
-      - unit-test-11:
-          filters: { tags: { only: /.*/ } }
-
       - check:
           requires: [ compile ]
           filters: { tags: { only: /.*/ } }
@@ -197,5 +172,5 @@ workflows:
           filters: { branches: { ignore: master } }
 
       - publish:
-          requires: [ unit-test, unit-test-11, check, trial-publish ]
+          requires: [ unit-test, check, trial-publish ]
           filters: { tags: { only: /.*/ }, branches: { only: master } }
