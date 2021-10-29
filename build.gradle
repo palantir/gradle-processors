@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.palantir.gradle.externalpublish:gradle-external-publish-plugin:0.4.10'
+    }
+}
 plugins {
   id 'java-gradle-plugin'
   id 'groovy'
@@ -7,6 +16,7 @@ plugins {
   id 'com.palantir.idea-test-fix' version '0.1.0'
   id 'nebula.maven-publish' version '9.5.3'
 }
+apply plugin: 'com.palantir.external-publish'
 
 repositories {
     mavenCentral()
