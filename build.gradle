@@ -2,7 +2,7 @@ plugins {
   id 'java-gradle-plugin'
   id 'groovy'
   id 'idea'
-  id 'com.gradle.plugin-publish' version '0.18.0'
+  id 'com.gradle.plugin-publish' version '0.20.0'
   id 'com.palantir.git-version' version '0.12.3'
   id 'com.palantir.idea-test-fix' version '0.1.0'
   id 'nebula.maven-publish' version '9.5.3'
