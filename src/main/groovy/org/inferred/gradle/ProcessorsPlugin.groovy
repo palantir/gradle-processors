@@ -18,6 +18,9 @@ import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.SourceSet
 import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
+import org.gradle.plugins.ide.eclipse.model.Classpath
+import org.gradle.plugins.ide.eclipse.model.EclipseModel
+import org.gradle.plugins.ide.eclipse.model.SourceFolder
 import org.gradle.plugins.ide.idea.IdeaPlugin
 import org.gradle.plugins.ide.idea.model.IdeaModel
 import org.gradle.plugins.ide.idea.model.IdeaModule
@@ -94,7 +97,10 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.eclipse {
             extensions.create('processors', EclipseProcessorsExtension)
             processors.conventionMapping.outputDir = {
-              project.file('generated/java')
+              project.file('generated_src')
+            }
+            processors.conventionMapping.testOutputDir = {
+              project.file('generated_testSrc')
             }
 
             // If this is empty, then it means EclipsePlugin didn't initialize it yet
@@ -119,6 +125,7 @@ class ProcessorsPlugin implements Plugin<Project> {
                   {
                     [
                             outputDir: project.relativePath(project.eclipse.processors.outputDir).replace('\\', '\\\\'),
+                            testOutputDir: project.relativePath(project.eclipse.processors.testOutputDir).replace('\\', '\\\\'),
                             deps     : allProcessorConf
                     ]
                   }
@@ -126,6 +133,21 @@ class ProcessorsPlugin implements Plugin<Project> {
           project.tasks.eclipseAptPrefs.inputs.files allProcessorConf
           project.tasks.eclipse.dependsOn project.tasks.eclipseAptPrefs
           project.tasks.cleanEclipse.dependsOn project.tasks.cleanEclipseAptPrefs
+          project.tasks.eclipseClasspath.configure {
+            doFirst {
+              if (!allProcessorConf.empty) {
+                EclipseModel eclipseModel = project.getExtensions().getByType(EclipseModel.class);
+                eclipseModel.classpath {
+                  file {
+                    beforeMerged { cp ->
+                      addEclipseOutput(project, cp, project.eclipse.processors.outputDir, false)
+                      addEclipseOutput(project, cp, project.eclipse.processors.testOutputDir, true)
+                    }
+                  }
+                }
+              }
+            }
+          }
 
           templateTask(
                   project,
@@ -140,6 +162,23 @@ class ProcessorsPlugin implements Plugin<Project> {
         }
       }
     }
+  }
+
+  private static void addEclipseOutput(Project project, Classpath cp, File dir, boolean isTest) {
+    // Eclipse complains if the directory does not exist.
+    dir.mkdirs();
+    String path = project.relativePath(dir);
+    // Use build to reuse existing gitignore rule.
+    // Use .ecapt_generated to avoid stomping on gradle generated files.
+    String buildOutput = isTest ? "build/.ecapt_generated/test" : "build/.ecapt_generated/main"
+    SourceFolder sf = new SourceFolder(path, buildOutput);
+    Map<String, Object> attributes = sf.getEntryAttributes();
+    attributes.put("ignore_optional_problems", "true");
+    attributes.put("optional", "true");
+    if (isTest) {
+      attributes.put("test", "true");
+    }
+    cp.getEntries().add(sf);
   }
 
   private static void configureIdeaPlugin(Project project, Configuration allProcessorConf) {
@@ -352,6 +391,7 @@ class ProcessorsExtension {
 
 class EclipseProcessorsExtension {
   Object outputDir
+  Object testOutputDir
 }
 
 class IdeaProcessorsExtension {
