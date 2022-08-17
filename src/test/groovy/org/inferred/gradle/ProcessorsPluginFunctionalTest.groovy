@@ -375,7 +375,8 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
     def expected = """
       eclipse.preferences.version=1
       org.eclipse.jdt.apt.aptEnabled=true
-      org.eclipse.jdt.apt.genSrcDir=generated${File.separator}java
+      org.eclipse.jdt.apt.genSrcDir=generated_src
+      org.eclipse.jdt.apt.genTestSrcDir=generated_testSrc
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n','').stripIndent()
 
@@ -395,6 +396,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
       eclipse.processors {
         outputDir = 'something'
+        testOutputDir = 'testsomething'
       }
     """
 
@@ -415,6 +417,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       eclipse.preferences.version=1
       org.eclipse.jdt.apt.aptEnabled=true
       org.eclipse.jdt.apt.genSrcDir=something
+      org.eclipse.jdt.apt.genTestSrcDir=testsomething
       org.eclipse.jdt.apt.reconcileEnabled=true
     """.replaceFirst('\n', '').stripIndent()
 
