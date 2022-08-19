@@ -12,14 +12,15 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = '1.7'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 dependencies {
-  compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
-  testCompile gradleTestKit()
-  testCompile 'com.netflix.nebula:nebula-test:7.0.0'
+  implementation 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
+  testImplementation gradleTestKit()
+  testImplementation 'com.netflix.nebula:nebula-test:10.0.0'
   // So we can run tests directly from IntelliJ
-  testRuntime files(tasks.pluginUnderTestMetadata)
+  testRuntimeOnly files(tasks.pluginUnderTestMetadata)
 }
 
 tasks.idea.dependsOn 'pluginUnderTestMetadata'
