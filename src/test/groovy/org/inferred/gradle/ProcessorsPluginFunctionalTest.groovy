@@ -212,7 +212,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     // Ensure generated classes not included in JaCoCo report
     def report = file('build/reports/jacoco/test/jacocoTestReport.xml').text
-    !report.empty()
+    !report.isEmpty()
 
     and:
     !report.contains('name="Immutable')
