@@ -141,7 +141,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
       apply plugin: 'groovy'
 
       dependencies {
-        compile 'org.codehaus.groovy:groovy-all:2.3.10'
+        implementation 'org.codehaus.groovy:groovy-all:2.3.10'
         processor 'com.google.auto.value:auto-value:1.0'
       }
     """
@@ -180,7 +180,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
       dependencies {
         processor 'org.immutables:value:2.0.21'
-        testCompile "junit:junit:4.12"
+        testImplementation "junit:junit:4.12"
       }
     """
 
@@ -212,10 +212,14 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
     // Ensure generated classes not included in JaCoCo report
     def report = file('build/reports/jacoco/test/jacocoTestReport.xml').text
+    !report.empty()
 
     and:
     !report.contains('name="Immutable')
     !report.contains('covered="0"')
+
+    where:
+    gradleVersion << ['4.10.3']
   }
 
   void testJacocoIntegrationDoesNotBreakInGradle5() throws IOException {
@@ -237,7 +241,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 
       dependencies {
         processor 'org.immutables:value:2.0.21'
-        testCompile "junit:junit:4.12"
+        testImplementation "junit:junit:4.12"
       }
     """
 
@@ -277,7 +281,7 @@ class ProcessorsPluginFunctionalTest extends AbstractPluginTest {
 //    !report.contains('covered="0"')
 
     where:
-    gradleVersion << ['5.0']
+    gradleVersion << [null, '5.0']
   }
 
 

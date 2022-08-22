@@ -21,6 +21,7 @@ dependencies {
   testImplementation 'com.netflix.nebula:nebula-test:10.0.0'
   // So we can run tests directly from IntelliJ
   testRuntimeOnly files(tasks.pluginUnderTestMetadata)
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.9.0'
 }
 
 tasks.idea.dependsOn 'pluginUnderTestMetadata'
@@ -39,6 +40,7 @@ gradlePlugin {
 //// Tests ////////////////////////////////////////////////////////////////////////////
 
 test {
+  useJUnitPlatform()
   testLogging {
     exceptionFormat = 'full'
   }
