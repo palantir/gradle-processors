@@ -52,7 +52,7 @@ class AbstractPluginTest extends IntegrationTestKitSpec {
 
   /** Intentionally overwritten as {@link nebula.test.BaseIntegrationSpec#file} creates the file */
   @Override
-  protected File file(String path, File baseDir = projectDir) {
+  File file(String path, File baseDir = projectDir) {
     def splitted = path.split('/')
     def directory = splitted.size() > 1 ? directory(splitted[0..-2].join('/'), baseDir) : baseDir
     def file = new File(directory, splitted[-1])

@@ -5,21 +5,23 @@ plugins {
   id 'com.gradle.plugin-publish' version '0.21.0'
   id 'com.palantir.git-version' version '0.13.0'
   id 'com.palantir.idea-test-fix' version '0.1.0'
-  id 'nebula.maven-publish' version '9.5.3'
+  id 'nebula.maven-publish' version '18.4.0'
 }
 
 repositories {
     mavenCentral()
 }
 
-sourceCompatibility = '1.7'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 dependencies {
-  compile 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
-  testCompile gradleTestKit()
-  testCompile 'com.netflix.nebula:nebula-test:7.0.0'
+  implementation 'org.codehaus.groovy:groovy-backports-compat23:2.3.5'
+  testImplementation gradleTestKit()
+  testImplementation 'com.netflix.nebula:nebula-test:10.0.0'
   // So we can run tests directly from IntelliJ
-  testRuntime files(tasks.pluginUnderTestMetadata)
+  testRuntimeOnly files(tasks.pluginUnderTestMetadata)
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.9.0'
 }
 
 tasks.idea.dependsOn 'pluginUnderTestMetadata'
@@ -38,6 +40,7 @@ gradlePlugin {
 //// Tests ////////////////////////////////////////////////////////////////////////////
 
 test {
+  useJUnitPlatform()
   testLogging {
     exceptionFormat = 'full'
   }
