@@ -9,7 +9,7 @@ plugins {
 }
 
 repositories {
-    mavenCentral()
+    mavenCentral() { metadataSources { mavenPom(); ignoreGradleMetadataRedirection() } }
 }
 
 sourceCompatibility = '1.7'
